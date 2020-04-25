@@ -32,10 +32,17 @@
 			]),
 			ugen_func: {
 				arg in, out, interval = 12, wet = 1, dry = 1, cutoff = 3e3, atk = 0.1, rel = 0.1;
-				var freq, hasFreq, sig;
+				var freq, hasFreq, sig, env;
 				in = In.ar(in);
 
+
 				# freq, hasFreq = Pitch.kr(in);
+
+				env = EnvGen.ar(
+					envelope: Env.adsr(atk,releaseTime: rel),
+					gate: hasFreq,
+					doneAction: 0);
+
 
 				freq = freq * interval.midiratio;
 
@@ -48,11 +55,11 @@
 					freq: cutoff,
 					gain: 2);
 
-				sig = Mix.ar([sig * hasFreq * wet, in * dry]);
-				Out.ar(out, sig);
+				sig = Mix.ar([sig * hasFreq * env * wet, in * dry]);
+				ReplaceOut.ar(out, sig);
 			},
 			name: \saw_synth,
-			addaction: \addToTail
+			addaction: \addAfter
 		);
 	}
 
@@ -97,7 +104,7 @@
 				freq = freq * interval.midiratio;
 
 				sig = Saw.ar(
-					freq: (freq + (LFNoise0.kr(freq, freq/20))),
+					freq: (freq + (LFNoise0.kr(freq, freq/30))),
 					mul: 0.8 +
 					LFNoise0.kr(Rand(1, 5)).range(-0.2, 0.2))!10;
 
@@ -107,10 +114,10 @@
 					gain: 2);
 
 				sig = Mix.ar([sig * hasFreq * wet, in * dry]);
-				Out.ar(out, sig);
+				ReplaceOut.ar(out, sig);
 			},
 			name: \tri_synth,
-			addaction: \addToTail
+			addaction: \addAfter
 		);
 	}
 
@@ -161,10 +168,10 @@
 					gain: 2);
 
 				sig = Mix.ar([sig * hasFreq * wet , in * dry]);
-				Out.ar(out, sig);
+				ReplaceOut.ar(out, sig);
 			},
 			name: \sine_synth,
-			addaction: \addToTail
+			addaction: \addAfter
 		);
 	}
 

@@ -22,8 +22,10 @@ Pedal {
 	<>view,
 	<>flow;
 
+
 	*new{|server, in, out, group|
 		^super.new.init(server, in, out, group);
+
 	}
 
 	*from_synth_params{|server, in, out, group, mappable_arg_dict,
@@ -39,6 +41,10 @@ Pedal {
 		this.out = out;
 		this.group = group;
 		this.gui_objs = List.new();
+
+		if(server.isNil.not, {
+			NodeWatcher.newFrom(server);
+		});
 
 		if(this.arg_dict.isNil, {
 			this.arg_dict = Dictionary.new();
@@ -78,9 +84,23 @@ Pedal {
 		});
 	}
 
+	assign_midi{|bus|
+
+	}
+
+
 	on{
-		// this.synth = Synth(this.synthdef, this.arg_dict.asPairs, this.group, this.addaction);
-		this.node = this.synth.play(this.group, this.arg_dict.asPairs, this.addaction);
+		//only create a new node on the server if there isn't already one
+		if(this.node.isPlaying, {
+			this.node.run(true)
+		}, {
+			this.node = this.synth.play(this.group, this.arg_dict.asPairs, this.addaction);
+			this.node.register;
+		});
+	}
+
+	free{
+		this.node.run(false);
 	}
 
 	get_bus{|argument|
@@ -88,6 +108,9 @@ Pedal {
 		^this.mappable_args[argument].bus;
 	}
 
+	set_bus{|argument, value|
+		this.get_bus(argument).set(value);
+	}
 
 	set_ugen_func{|func|
 		this.ugen_func = func;
@@ -130,13 +153,8 @@ Pedal {
 	add_gui_controls{
 		this.mappable_args.do({
 			arg m_arg;
-			var classnames = Dictionary.with(*[
-				\knob -> EZKnob,
-				\slider -> EZSlider,
-				// \listview -> EZListView,
-				\number-> EZNumber]);
-			// this.gui_objs.add({
-				classnames[m_arg.gui_object].new(
+			if(m_arg.gui_object == \knob, {
+				EZKnob.new(
 					parent: this.view,
 					bounds: 40@80,
 					label: m_arg.symbol.asString.toUpper,
@@ -146,11 +164,7 @@ Pedal {
 						m_arg.bus.set(v.value);},
 					initVal: m_arg.default_value,
 					initAction: true,
-					layout: {
-					var result;
-					if(classnames[m_arg.gui_object] == EZSlider,{result = \horz}, {result = \vert});
-					result;
-					}.value
+					layout: \vert
 				)
 				.setColors(
 					stringBackground: Color.rand(0.85, 0.95),
@@ -160,6 +174,7 @@ Pedal {
 					numNormalColor: Color.rand(0.05, 0.15)
 				)
 				.font_(Font("Helvetica", 9));
+			});
 		// });
 		});
 	}

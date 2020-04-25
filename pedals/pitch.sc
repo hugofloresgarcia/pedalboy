@@ -49,7 +49,7 @@
 				ReplaceOut.ar(out, sig);
 			},
 			name: \grain_pitch_shifter,
-			addaction: \addToTail);
+			addaction: \addAfter);
 	}
 
 	*pitch_follower{
@@ -94,7 +94,7 @@
 				ReplaceOut.ar(out, sound);
 			},
 			name: \pitch_follower,
-			addaction: \addToTail);
+			addaction: \addAfter);
 	}
 
 
@@ -131,6 +131,6 @@
 				Out.ar(out, sig);
 			},
 			name: \mono_pitch,
-			addaction: \addToTail);
+			addaction: \addAfter);
 	}
 }

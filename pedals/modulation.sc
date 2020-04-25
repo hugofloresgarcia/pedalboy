@@ -28,7 +28,7 @@ Modulator : Pedal {
 		this.min = min;
 		this.max = max;
 		this.oscillator = ugen;
-		super.init(this.server, this.in, this.out, this.group);
+		super.init(this.server, this.in, this.out, this.group).make_synthdef;
 	}
 
 	*sine{|parent, argument|

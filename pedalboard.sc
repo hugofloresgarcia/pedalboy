@@ -48,11 +48,10 @@ Pedalboard{
 	add{|pedal|
 		var target;
 		if(this.pedals.size == 0, {
-			target = this.group
+			target = this.group;
 		}, {
 			target = this.at(this.pedals.size-1).node;
 		});
-		target = this.group;
 		this.init_pedal(pedal, target);
 		this.pedals.add(Ref(pedal));
 	}
@@ -66,6 +65,16 @@ Pedalboard{
 		this.init_pedal(pedal, target);
 		this.pedals.insert(index, pedal);
 	}
+
+	toggle_on{|index|
+		this.at(index).on;
+	}
+
+	toggle_off{|index|
+		this.at(index).free;
+	}
+
+
 }
 
  

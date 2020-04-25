@@ -39,7 +39,7 @@
 				ReplaceOut.ar(out, sig * gain)
 			},
 			name: \output_buffer,
-			addaction: \addToTail);
+			addaction: \addAfter);
 	}
 
 	*panner{
@@ -60,6 +60,6 @@
 				ReplaceOut.ar(out, sig)
 			},
 			name: \panner,
-			addaction: \addToTail);
+			addaction: \addAfter);
 	}
 }
