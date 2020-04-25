@@ -71,7 +71,7 @@ Pedalboard{
 	}
 
 	toggle_off{|index|
-		this.at(index).free;
+		this.at(index).bypass;
 	}
 
 
