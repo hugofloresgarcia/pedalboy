@@ -99,7 +99,7 @@ Pedal {
 		});
 	}
 
-	free{
+	bypass{
 		this.node.run(false);
 	}
 
