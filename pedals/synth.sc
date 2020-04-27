@@ -1,7 +1,7 @@
 
-+ Pedal{
++ PedalBoy{
 	*saw_synth{|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -65,7 +65,7 @@
 
 
 	*tri_synth{|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -123,7 +123,7 @@
 
 
 	*sine_synth{|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -176,7 +176,7 @@
 	}
 
 	*fm_synth{|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,

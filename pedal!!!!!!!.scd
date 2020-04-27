@@ -1,7 +1,7 @@
 
 
 // Look at the pedal directory
-Pedal.directory
+PedalBoy.directory
 
 s.plotTreeView(0.5, Window.new.front.alwaysOnTop_(true));
 //HEADPHONES RECOMMENDED!!!!!
@@ -15,44 +15,45 @@ s.waitForBoot({
 	MIDIIn.connectAll;
 	// main window
 	w = Window.new(
-		name: "PEDALBOARD",
+		name: "PEDALBOY",
 		bounds:1040@305).front.alwaysOnTop_(true)
 	.onClose_({
 		~pedalboard.free_all;
 	});
 
 	//pedalboard object holds a list with pedal pointers
-	~pedalboard = Pedalboard.new(s, w);
+	~pedalboard = Pedalboard.new(
+		server: s,
+		window: w);
 
 	// our pedal objects
-	~input = Pedal.input_buffer();
+	~input = PedalBoy.input_buffer();
 	~pedalboard.add(~input);
 
-	~pshift = Pedal.pitch_shift();
+	~pshift = PedalBoy.pitch_shift();
 	~pedalboard.add(~pshift);
 
 
-	~compressor = Pedal.compressor();
+	~compressor = PedalBoy.compressor();
 	~pedalboard.add(~compressor);
 
-	~vib = Pedal.vibrato();
+	~vib = PedalBoy.vibrato();
 	~pedalboard.add(~vib);
 
 
-	~delay = Pedal.delay();
+	~delay = PedalBoy.delay();
 	~pedalboard.add(~delay);
 
-	~freeverb = Pedal.freeverb();
+	~freeverb = PedalBoy.freeverb();
 	~pedalboard.add(~freeverb);
 
 
-	~panner = Pedal.panner();
+	~panner = PedalBoy.panner();
 	~pedalboard.add(~panner);
 
 	~pedalboard.assign_bypass(60);
 });
 )
-
 
 ~pedalboard.remove(1)
 ~pedalboard.insert(1, Modulator.pulse(~pshift, \interval))

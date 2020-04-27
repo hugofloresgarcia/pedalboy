@@ -1,7 +1,7 @@
-+ Pedal {
++ PedalBoy {
 	*delay{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -39,7 +39,7 @@
 
 	*freeverb{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,

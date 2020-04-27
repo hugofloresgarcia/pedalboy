@@ -1,4 +1,4 @@
-Modulator : Pedal {
+Modulator : PedalBoy {
 	var
 	<>min,
 	<>max,
@@ -112,7 +112,7 @@ Modulator : Pedal {
 
 
 		// this.server.sync;
-		PedalScope(this.server, 1, this.scope_bus.index, 1024, 1, 'control', this.scope_view)
+		PedalBoyScope(this.server, 1, this.scope_bus.index, 1024, 1, 'control', this.scope_view)
 		.index_(this.scope_bus.index)
 		.view.children[0]
 		.style_(0)
@@ -152,11 +152,11 @@ Modulator : Pedal {
 	}
 }
 
-+ Pedal {
++ PedalBoy {
 
 	*vibrato{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -199,7 +199,7 @@ Modulator : Pedal {
 
 	*chorus{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,

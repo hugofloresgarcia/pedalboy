@@ -13,10 +13,10 @@ Pedalboard{
 		^super.new.init(server, window);
 	}
 
-	init{|server, window|
+	init{|server, window, pedal_bounds|
 		this.server = server;
 
-		this.pedal_bounds = Rect(0, 0, 200, 300);
+		this.pedal_bounds = Rect.fromPoints(0@0, 200@(300));
 		this.window = window;
 
 		this.patch_cable = Bus.audio(this.server, 1);

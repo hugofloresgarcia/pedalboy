@@ -1,7 +1,7 @@
-+ Pedal {
++ PedalBoy {
 	*grain_pitch_shifter{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -68,7 +68,7 @@
 
 	*pitch_follower{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -114,7 +114,7 @@
 
 	*pitch_shift{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,

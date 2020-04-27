@@ -1,7 +1,7 @@
-+Pedal{
++PedalBoy{
 
 	*input_buffer{|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -24,7 +24,7 @@
 
 	*output_buffer{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,
@@ -44,7 +44,7 @@
 
 	*panner{
 		|server, in, out, group|
-		^Pedal.from_synth_params(
+		^PedalBoy.from_synth_params(
 			server: server,
 			in: in,
 			out: out,

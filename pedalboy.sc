@@ -1,4 +1,4 @@
-Pedal {
+PedalBoy {
 	// abstract class for all pedals
 	classvar
 	<>num_active = 0;
@@ -19,6 +19,7 @@ Pedal {
 	<>mappable_args,
 
 	<>gui_objs,
+	<>master_bounds,
 
 	<>scope_view,
 	<>control_view,
@@ -40,7 +41,7 @@ Pedal {
 	*from_synth_params{|server, in, out, group, mappable_arg_dict,
 		ugen_func, name = \pedal, addaction = \addToTail|
 
-		^Pedal.new(server, in, out, group).synth_param_init(mappable_arg_dict, ugen_func, name, addaction);
+		^PedalBoy.new(server, in, out, group).synth_param_init(mappable_arg_dict, ugen_func, name, addaction);
 	}
 
 	init{|server, in, out, group|
@@ -103,9 +104,7 @@ Pedal {
 				Routine({
 					if (note == midinote,{
 						var val;
-
 						if(this.bypass_button.value == 0, {val = 1}, {val = 0});
-
 						this.bypass_button.valueAction_(val);
 					});
 				}).play(AppClock)
@@ -168,6 +167,10 @@ Pedal {
 	}
 
 	make_view{|parent, bounds|
+		this.master_bounds = 200@300;
+		//towards scalable pedals. this was the original size used during prototyping,
+		/// and the views will continue to be scaled accordingly.
+
 		if(bounds.isKindOf(Point), {
 			"ERROR: you cant put a point in these bounds"
 		});
@@ -191,10 +194,12 @@ Pedal {
 	}
 
 	view_label{
+		var b = this.master_bounds;
+		var a = this.view.bounds.extent;
 		// this.view.layout.insert(
 		this.label_view = View(
 			parent: this.view,
-			bounds: Rect(0, 0, (this.view.bounds.width - 10), 20));
+			bounds: Rect(0, 0, (this.view.bounds.width - 10), 20 * a.y / b.y));
 		this.label_view.minSize_(Size(this.label_view.bounds.width, this.label_view.bounds.height));
 		this.label_view.maxSize_(Size(this.label_view.bounds.width, this.label_view.bounds.height));
 
@@ -214,8 +219,10 @@ Pedal {
 	////////////////////////////////////////////////////////////////////////////////////
 	// this is where the scope view is created
 	make_scope_view{
+		var b = this.master_bounds;
+		var a = this.view.bounds.extent;
 
-		this.scope_view = View(this.view, Rect(0, 0, 185, 80));
+		this.scope_view = View(this.view, Rect(0, 0, 185*a.x/b.x, 80*a.y/b.y));
 
 		// set size bounds for VLayout compatibility
 		this.scope_view.minSize_(Size(this.scope_view.bounds.width,
@@ -262,10 +269,13 @@ Pedal {
 
 
 	add_gui_controls{
+		var b = this.master_bounds;
+		var a = this.view.bounds.extent;
 		this.control_view = FlowView(
 			parent: this.view,
-			bounds: Rect(0, 0, 200, 280))
-		.minSize_(Size(200, 150));
+			bounds: Rect(0, 0, 200*a.x/b.x, 280*a.y/b.y))
+		.minSize_(Size(200*a.x/b.x, 150*a.y/b.y))
+		.maxSize_(Size(200*a.x/b.x, 150*a.y/b.y));
 		this.mappable_args.do({
 			arg m_arg, count;
 			if(m_arg.gui_object == \knob, {
@@ -274,7 +284,7 @@ Pedal {
 				});
 				EZKnob.new(
 					parent: this.control_view,
-					bounds: 43@70,
+					bounds: (43*a.x/b.x)@(70*a.y/b.y),
 					label: m_arg.symbol.asString.toUpper,
 					controlSpec: m_arg.control_spec,
 					action: {
@@ -282,8 +292,13 @@ Pedal {
 						m_arg.bus.set(v.value);},
 					initVal: m_arg.default_value,
 					initAction: true,
+					labelWidth: 60 * a.x/b.x,
+					labelHeight: 20 * a.y/b.y,
 					layout: \vert
 				)
+				// .knobSize_((43*a.x/b.x)@(70*a.y/b.y))
+/*				.minSize_(Size(43*a.x/b.x, 70*a.y/b.y))
+				.maxSize_(Size(43*a.x/b.x, 70*a.y/b.y))*/
 				.setColors(
 					stringBackground: Color.rand(0.75, 0.95),
 					stringColor: Color.rand(0.05, 0.15),
@@ -301,11 +316,13 @@ Pedal {
 	}
 
 	add_buttons{
+		var b = this.master_bounds;
+		var a = this.view.bounds.extent;
 		var bypass_button;
 
 		this.bypass_button = Button.new(
 			parent: this.view,
-			bounds: Rect(0, 0, this.view.bounds.width-10, 20))
+			bounds: Rect(0, 0, this.view.bounds.width-10, 20*a.y/b.y))
 		.states_([
 			["BYPASS", Color.new255(51, 51, 51), Color.new(0.9, 0.5, 0.5)],
 			["ON", Color.new255(51, 51, 51), Color.new(0.5, 0.9, 0.5)]])
@@ -324,22 +341,22 @@ Pedal {
 
 	*directory{
 		var all = Dictionary.with(*[
-			\input_buffer -> Pedal.input_buffer(),
-			\output_buffer -> Pedal.output_buffer(),
-			\panner -> Pedal.panner(),
-			\grain_pitch_shifter -> Pedal.grain_pitch_shifter(),
-			\pitch_follower -> Pedal.pitch_follower(),
-			\pitch_shift -> Pedal.pitch_shift(),
-			\saw_synth -> Pedal.saw_synth(),
-			\tri_synth -> Pedal.tri_synth(),
-			\sine_synth -> Pedal.tri_synth(),
-			\fm_synth -> Pedal.fm_synth(),
-			\delay -> Pedal.delay(),
-			\compressor -> Pedal.compressor(),
-			\freeverb -> Pedal.freeverb(),
-			\vibrato -> Pedal.vibrato(),
-			\chorus -> Pedal.chorus(),
-			\env_filter -> Pedal.env_filter()
+			\input_buffer -> PedalBoy.input_buffer(),
+			\output_buffer -> PedalBoy.output_buffer(),
+			\panner -> PedalBoy.panner(),
+			\grain_pitch_shifter -> PedalBoy.grain_pitch_shifter(),
+			\pitch_follower -> PedalBoy.pitch_follower(),
+			\pitch_shift -> PedalBoy.pitch_shift(),
+			\saw_synth -> PedalBoy.saw_synth(),
+			\tri_synth -> PedalBoy.tri_synth(),
+			\sine_synth -> PedalBoy.tri_synth(),
+			\fm_synth -> PedalBoy.fm_synth(),
+			\delay -> PedalBoy.delay(),
+			\compressor -> PedalBoy.compressor(),
+			\freeverb -> PedalBoy.freeverb(),
+			\vibrato -> PedalBoy.vibrato(),
+			\chorus -> PedalBoy.chorus(),
+			\env_filter -> PedalBoy.env_filter()
 		]);
 		all.keysValuesDo({
 			arg key, value;
