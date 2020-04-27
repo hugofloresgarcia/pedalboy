@@ -55,6 +55,18 @@ Pedalboard{
 
 	}
 
+	assign_bypass{|start_note|
+		this.pedals.do({
+			arg pedal_ptr, count;
+			var pedal;
+
+			pedal = pedal_ptr.dereference;
+			pedal.assign_bypass(start_note + count);
+		});
+	}
+
+
+
 	at{|index|
 		^this.pedals.at(index).dereference;
 	}
@@ -68,7 +80,6 @@ Pedalboard{
 		});
 		this.init_pedal(pedal, target);
 		this.pedals.add(Ref(pedal));
-
 		this.remake_view();
 	}
 
@@ -96,12 +107,22 @@ Pedalboard{
 		});
 	}
 
+	remove{|index|
+		var pedal = this.at(index);
+		pedal.free;
+		this.pedals.removeAt(index);
+		this.window.view.children[index].removeAll;
+		this.remake_view;
+	}
+
+
 	remake_view{
 		if(((this.pedals.size).mod(5) == 0) && (this.pedals.size != 0), {
 			this.window.view.resizeTo(
 					width: this.window.bounds.width,
 					height: this.window.bounds.height + this.pedal_bounds.height)
 		});
+		this.window.view.removeAll;
 
 		this.window.layout_(nil);
 		this.window.addFlowLayout();
@@ -121,6 +142,17 @@ Pedalboard{
 
 	toggle_off{|index|
 		this.at(index).bypass;
+	}
+
+	free_all{
+		this.pedals.do({
+			arg pedal_ptr;
+			var pedal;
+
+			pedal = pedal_ptr.dereference;
+
+			pedal.free
+		});
 	}
 
 

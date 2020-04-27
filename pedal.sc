@@ -24,6 +24,7 @@ Pedal {
 	<>control_view,
 	<>label_view,
 	<>button_view,
+	<>bypass_button,
 
 	<>view,
 	<>flow,
@@ -93,6 +94,24 @@ Pedal {
 		});
 	}
 
+	assign_bypass{|midinote|
+		MIDIdef.noteOn(
+			key: ("bypass_" ++ this.synthdef.asString).asSymbol,
+			func: {
+				arg vel, note;
+				note.postln;
+				Routine({
+					if (note == midinote,{
+						var val;
+
+						if(this.bypass_button.value == 0, {val = 1}, {val = 0});
+
+						this.bypass_button.valueAction_(val);
+					});
+				}).play(AppClock)
+		});
+	}
+
 	assign_midi{|bus|
 
 	}
@@ -121,6 +140,7 @@ Pedal {
 
 	free{
 		this.synth_node.free;
+		this.scope_node.free;
 	}
 	get_arg{|argument|
 		//return the control bus associated with an argument
@@ -164,7 +184,8 @@ Pedal {
 				this.label_view,
 				this.scope_view,
 				this.control_view,
-				this.button_view
+				this.bypass_button
+
 			)
 		);
 	}
@@ -282,7 +303,7 @@ Pedal {
 	add_buttons{
 		var bypass_button;
 
-		this.button_view = Button.new(
+		this.bypass_button = Button.new(
 			parent: this.view,
 			bounds: Rect(0, 0, this.view.bounds.width-10, 20))
 		.states_([
@@ -315,7 +336,10 @@ Pedal {
 			\fm_synth -> Pedal.fm_synth(),
 			\delay -> Pedal.delay(),
 			\compressor -> Pedal.compressor(),
-			\freeverb -> Pedal.freeverb()
+			\freeverb -> Pedal.freeverb(),
+			\vibrato -> Pedal.vibrato(),
+			\chorus -> Pedal.chorus(),
+			\env_filter -> Pedal.env_filter()
 		]);
 		all.keysValuesDo({
 			arg key, value;

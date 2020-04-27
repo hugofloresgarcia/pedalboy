@@ -7,6 +7,7 @@
 			out: out,
 			group: group,
 			mappable_arg_dict: Dictionary.with(*[
+
 				\thresh -> MappableArg.new(
 					symbol: \thresh,
 					bounds: 0@1,
@@ -23,11 +24,19 @@
 					bus: Bus.control(server, 1)),
 				\atk -> MappableArg.atk(Bus.control(server, 1)),
 				\rel -> MappableArg.rel(Bus.control(server, 1)),
-				\wet -> MappableArg.wet(Bus.control(server, 1)),
-				\dry -> MappableArg.dry(Bus.control(server, 1)),
+				\wet -> MappableArg.wet(Bus.control(server, 1)).default_value_(1),
+				\dry -> MappableArg.dry(Bus.control(server, 1)).default_value_(0.1),
+				\makeup -> MappableArg.new(
+					symbol: \makeup,
+					bounds: 0.01@2,
+					default_value: 1,
+					warp: \lin,
+					gui_object: \knob,
+					bus: (Bus.control(server, 1)))
+
 			]),
 			ugen_func: {
-				arg in, out, thresh, ratio, atk, rel, wet, dry;
+				arg in, out, thresh, ratio, atk, rel, wet, dry, makeup;
 				var sig;
 
 				in = In.ar(in);
@@ -37,7 +46,9 @@
 					thresh: thresh,
 					slopeAbove: 1/ratio,
 					clampTime: atk,
-					relaxTime: rel);
+					relaxTime: rel,
+					mul: makeup
+				);
 
 				sig = Mix.ar([sig * wet, in * dry]);
 				ReplaceOut.ar(out, sig);

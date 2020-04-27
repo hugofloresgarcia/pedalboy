@@ -18,8 +18,8 @@ MappableArg {
 		^MappableArg(
 			symbol: \gain,
 			bounds: 1e-2@1,
-			default_value: 0.3,
-			warp: \exp,
+			default_value: 0.8,
+			warp: \lin,
 			gui_object: \knob,
 			bus: bus);
 	}
@@ -28,8 +28,8 @@ MappableArg {
 		^MappableArg.new(
 			symbol: \wet,
 			bounds: 0.01@1,
-			default_value: 0.3,
-			warp: \exp,
+			default_value: 0.8,
+			warp: \lin,
 			gui_object: \knob,
 			bus: bus);
 	}
@@ -39,8 +39,8 @@ MappableArg {
 		^MappableArg.new(
 			symbol: \dry,
 			bounds: 0.01@1,
-			default_value: 0.3,
-			warp: \exp,
+			default_value: 0.5,
+			warp: \lin,
 			gui_object: \knob,
 			bus: bus);
 	}

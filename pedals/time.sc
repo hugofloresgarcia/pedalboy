@@ -21,8 +21,8 @@
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
-				\wet -> MappableArg.wet(Bus.control(server, 1)),
-				\dry -> MappableArg.dry(Bus.control(server, 1))
+				\wet -> MappableArg.wet(Bus.control(server, 1)).default_value_(0.5),
+				\dry -> MappableArg.dry(Bus.control(server, 1)).default_value_(1),
 			]),
 			ugen_func: {
 				arg in, out, wet, dry, delay, decay;
@@ -45,12 +45,12 @@
 			out: out,
 			group: group,
 			mappable_arg_dict: Dictionary.with(*[
-				\wet -> MappableArg.wet(Bus.control(server, 1)),
-				\dry -> MappableArg.dry(Bus.control(server, 1)),
+				\wet -> MappableArg.wet(Bus.control(server, 1)).default_value_(0.5),
+				\dry -> MappableArg.dry(Bus.control(server, 1)).default_value_(1),
 				\room -> MappableArg.new(
 					symbol: \room,
 					bounds: 0@1,
-					default_value: 0.5,
+					default_value: 0.8,
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
@@ -81,6 +81,9 @@
 			name: \freeverb,
 			addaction: \addAfter
 		)
+	}
+
+	*freeze{
 	}
 }
 

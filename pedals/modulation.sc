@@ -150,6 +150,109 @@ Modulator : Pedal {
 				Out.kr(out, sig);
 		}).play(this.synth_node, [\in, out, \out, this.scope_bus.index], \addAfter);
 	}
+}
 
++ Pedal {
+
+	*vibrato{
+		|server, in, out, group|
+		^Pedal.from_synth_params(
+			server: server,
+			in: in,
+			out: out,
+			group: group,
+			mappable_arg_dict: Dictionary.with(*[
+				\depth -> MappableArg.new(
+					symbol: \depth,
+					bounds: 0@1,
+					default_value: 0.5,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\speed -> MappableArg.new(
+					symbol: \speed,
+					bounds: 0@1,
+					default_value: 0.5,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\wet -> MappableArg.wet(Bus.control(server, 1)).default_value_(0.9),
+				\dry -> MappableArg.dry(Bus.control(server, 1)).default_value_(0.01),
+			]),
+			ugen_func: {
+				arg in, out, wet, dry, depth, speed;
+				var sig;
+				in = In.ar(in);
+
+				sig = DelayC.ar(
+					in: in,
+					maxdelaytime: 0.2,
+					delaytime: SinOsc.ar(speed).range(0, 0.02) * depth);
+
+				sig = Mix.ar([sig * wet, dry * in]);
+				ReplaceOut.ar(out, sig);
+			},
+			name: \vibrato,
+			addaction: \addAfter,
+		);
+	}
+
+	*chorus{
+		|server, in, out, group|
+		^Pedal.from_synth_params(
+			server: server,
+			in: in,
+			out: out,
+			group: group,
+			mappable_arg_dict: Dictionary.with(*[
+				\depth -> MappableArg.new(
+					symbol: \depth,
+					bounds: 0@1,
+					default_value: 0.5,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\speed -> MappableArg.new(
+					symbol: \speed,
+					bounds: 0@1,
+					default_value: 0.5,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\wet -> MappableArg.wet(Bus.control(server, 1)),
+				\dry -> MappableArg.dry(Bus.control(server, 1))
+			]),
+			ugen_func: {
+				arg in, out, wet, dry, depth, speed;
+				var sig;
+				var n = 10;
+
+				in = In.ar(in);
+
+				sig = Mix.fill(n, {
+
+					var maxdelaytime= rrand(0.01,0.03);
+
+					var half= maxdelaytime*0.5;
+
+					var quarter= maxdelaytime*0.25;
+
+
+
+					//%half+(quarter*LPF.ar(WhiteNoise.ar,rrand(1.0,10)))
+
+					DelayC.ar(in, maxdelaytime, LFNoise1.kr(Rand(5,10),0.01,0.02) )
+				});
+
+
+
+
+				sig = Mix.ar([sig * wet, dry * in]);
+				ReplaceOut.ar(out, sig);
+			},
+			name: \chorus,
+			addaction: \addAfter,
+		);
+	}
 
 }
