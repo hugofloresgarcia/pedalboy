@@ -17,7 +17,7 @@ MappableArg {
 	*gain{|bus|
 		^MappableArg(
 			symbol: \gain,
-			bounds: 1e-5@1,
+			bounds: 1e-2@1,
 			default_value: 0.3,
 			warp: \exp,
 			gui_object: \knob,

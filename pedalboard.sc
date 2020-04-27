@@ -16,29 +16,43 @@ Pedalboard{
 	init{|server, window|
 		this.server = server;
 
-		this.pedal_bounds = Rect(0, 0, 200, 200);
+		this.pedal_bounds = Rect(0, 0, 200, 300);
 		this.window = window;
+
+		this.patch_cable = Bus.audio(this.server, 1);
 
 		this.window.addFlowLayout;
 		this.group = Group.new(this.server, \addToHead);
 		this.pedals = List.new();
 
 		if(this.window.isNil.not, {
-/*			this.view = View(
-				parent: this.window,
-				bounds: this.window.bounds)
-			.addFlowLayout;*/
 		});
 	}
 
 	init_pedal{|pedal, target|
-		pedal.init(this.server, this.patch_cable, this.patch_cable, target);
+		var in, out;
+		if(pedal.synthdef == \input_buffer, {
+			"input buffer connected!".postln;
+			in = 0
+		},{
+			in = this.patch_cable;
+		});
+		if(pedal.synthdef == \panner, {
+			"panner connected!".postln;
+			out = 0
+		},{
+			out = this.patch_cable;
+		});
+
+
+		pedal.init(this.server, in, out, target);
+		pedal.on;
 
 		if(this.window.isNil.not, {
 			pedal.make_view(this.window.view, this.pedal_bounds);
 		});
 
-		pedal.on;
+
 	}
 
 	at{|index|
@@ -54,17 +68,52 @@ Pedalboard{
 		});
 		this.init_pedal(pedal, target);
 		this.pedals.add(Ref(pedal));
+
+		this.remake_view();
 	}
+
 
 	insert{|index, pedal|
 		var target;
-		 // since the pedals add to to the tail of a target,
-		// we get the pedal that goes before our new pedal,
-		// and add our new pedal to the tail of it.
-		target = this.at(index-1).node;
-		this.init_pedal(pedal, target);
-		this.pedals.insert(index, pedal);
+
+		if (pedal.isMemberOf(Modulator), {
+			pedal.on;
+			this.pedals.insert(index, pedal);
+			this.remake_view();
+		});
+		if (pedal.isMemberOf(Pedal), {
+			// since the pedals add to to the tail of a target,
+			// we get the pedal that goes before our new pedal,
+			// and add our new pedal to the tail of it.
+
+			target = this.at(index-1).node;
+
+
+			this.init_pedal(pedal, target);
+			this.pedals.insert(index, pedal);
+
+			this.remake_view();
+		});
 	}
+
+	remake_view{
+		if(((this.pedals.size).mod(5) == 0) && (this.pedals.size != 0), {
+			this.window.view.resizeTo(
+					width: this.window.bounds.width,
+					height: this.window.bounds.height + this.pedal_bounds.height)
+		});
+
+		this.window.layout_(nil);
+		this.window.addFlowLayout();
+		this.pedals.do({
+			arg pedal_ptr, count;
+			var pedal = pedal_ptr.dereference;
+
+			pedal.make_view(this.window, this.pedal_bounds);
+		});
+		this.window.refresh;
+	}
+
 
 	toggle_on{|index|
 		this.at(index).on;

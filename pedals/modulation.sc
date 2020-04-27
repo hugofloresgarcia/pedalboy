@@ -2,7 +2,8 @@ Modulator : Pedal {
 	var
 	<>min,
 	<>max,
-	<>oscillator;
+	<>oscillator,
+	<>parent;
 
 	*newWithUgen{|parent, argument, ugen|
 
@@ -21,10 +22,11 @@ Modulator : Pedal {
 			bus,
 			bus,
 			parent.node
-		).modinit(min, max, ugen);
+		).modinit(min, max, ugen, parent);
 	}
 
-	modinit{|min, max, ugen|
+	modinit{|min, max, ugen, parent|
+		this.parent = parent;
 		this.min = min;
 		this.max = max;
 		this.oscillator = ugen;
@@ -50,7 +52,8 @@ Modulator : Pedal {
 
 	set_synth_params{
 		this.addaction = \addBefore;
-		this.synthdef = \mod;
+		this.synthdef = (\mod.asString ++ "_" ++ this.parent.synthdef.asString).asSymbol;
+		this.scope_bus = Bus.control(this.server, 1);
 
 		this.arg_dict = Dictionary.with(*[
 			\in -> this.in,
@@ -89,4 +92,64 @@ Modulator : Pedal {
 			}
 		});
 	}
+
+
+
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	// this is where the scope view is created
+	make_scope_view{
+
+		this.scope_view = View(this.view, Rect(0, 0, 185, 80));
+
+		// set size bounds for VLayout compatibility
+		this.scope_view.minSize_(Size(this.scope_view.bounds.width,
+			this.scope_view.bounds.height));
+		this.scope_view.maxSize_(Size(this.scope_view.bounds.width,
+			this.scope_view.bounds.height));
+
+
+
+		// this.server.sync;
+		PedalScope(this.server, 1, this.scope_bus.index, 1024, 1, 'control', this.scope_view)
+		.index_(this.scope_bus.index)
+		.view.children[0]
+		.style_(0)
+		.fill_(true)
+		.y_(-0.5)
+		.yZoom_(8)
+		.waveColors_([Color.new(0.5.rrand(0.85),0.5.rrand(0.85), 0.5.rrand(0.85))])
+		.focus
+		.start;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	// this is where the scope view is created
+	scope{
+		var out;
+		// this.synth_node.postln
+		this.out.postln;
+
+		if (this.out.isKindOf(Bus).not, {
+			out = this.out;
+		}, {
+			out = this.out.index;
+		});
+
+		this.scope_node = SynthDef((this.synthdef.asString ++ "_scope").asSymbol,
+			{arg in, out;
+				var sig;
+				var mid = (this.max - this.min)/2;
+				sig = In.kr(in, 1) - mid;
+				// sig = sig - (this.max - this.min);
+				sig = sig * 0.5;
+
+				Out.kr(out, sig);
+		}).play(this.synth_node, [\in, out, \out, this.scope_bus.index], \addAfter);
+	}
+
+
 }

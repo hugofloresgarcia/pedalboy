@@ -9,7 +9,7 @@ Pedal {
 	<>out,
 
 	<>synthdef,
-	<>node,
+	<>synth_node,
 	<>synth,
 	<>ugen_func,
 	<>addaction,
@@ -19,9 +19,17 @@ Pedal {
 	<>mappable_args,
 
 	<>gui_objs,
-	<>view,
-	<>flow;
 
+	<>scope_view,
+	<>control_view,
+	<>label_view,
+	<>button_view,
+
+	<>view,
+	<>flow,
+
+	<>scope_node,
+	<>scope_bus;
 
 	*new{|server, in, out, group|
 		^super.new.init(server, in, out, group);
@@ -41,6 +49,7 @@ Pedal {
 		this.out = out;
 		this.group = group;
 		this.gui_objs = List.new();
+		this.scope_bus = Bus.audio(this.server, 1);
 
 		if(server.isNil.not, {
 			NodeWatcher.newFrom(server);
@@ -88,27 +97,37 @@ Pedal {
 
 	}
 
+	node{
+		^this.scope_node;
+	}
+
 
 	on{
 		//only create a new node on the server if there isn't already one
-		if(this.node.isPlaying, {
-			this.node.run(true)
+		if(this.synth_node.isPlaying, {
+			this.synth_node.run(true);
+			this.scope_node.run(true); // creates the scope synthdef
 		}, {
-			this.node = this.synth.play(this.group, this.arg_dict.asPairs, this.addaction);
-			this.node.register;
+			this.synth_node = this.synth.play(this.group, this.arg_dict.asPairs, this.addaction);
+			this.synth_node.register;
+			this.scope();
 		});
 	}
 
 	bypass{
-		this.node.run(false);
+		this.synth_node.run(false);
+		this.scope_node.run(false);
 	}
 
-	get_bus{|argument|
+	free{
+		this.synth_node.free;
+	}
+	get_arg{|argument|
 		//return the control bus associated with an argument
 		^this.mappable_args[argument].bus;
 	}
 
-	set_bus{|argument, value|
+	set_arg{|argument, value|
 		this.get_bus(argument).set(value);
 	}
 
@@ -116,7 +135,7 @@ Pedal {
 		this.ugen_func = func;
 	}
 
-	scope{|argument|
+	scope_arg{|argument|
 		this.get_bus(argument).scope;
 	}
 
@@ -133,30 +152,108 @@ Pedal {
 			"ERROR: you cant put a point in these bounds"
 		});
 		this.view = View(parent, bounds)
-		.background_(Color.rand(0.85, 0.95));
+		.background_(Color.rand(0.75, 0.95));
 
-		this.flow = this.view.addFlowLayout(5@5, 5@5);
+		this.view_label;
+		this.make_scope_view;
+		this.add_gui_controls;
+		this.add_buttons;
+
+		this.view.layout_(
+			VLayout(
+				this.label_view,
+				this.scope_view,
+				this.control_view,
+				this.button_view
+			)
+		);
+	}
+
+	view_label{
+		// this.view.layout.insert(
+		this.label_view = View(
+			parent: this.view,
+			bounds: Rect(0, 0, (this.view.bounds.width - 10), 20));
+		this.label_view.minSize_(Size(this.label_view.bounds.width, this.label_view.bounds.height));
+		this.label_view.maxSize_(Size(this.label_view.bounds.width, this.label_view.bounds.height));
 
 		StaticText(
-			parent: this.view,
-			bounds: (bounds.width - 10)@20)
+			parent: this.label_view,
+			bounds: this.label_view.bounds)
 		.string_(this.synthdef.asString.toUpper)
 		.align_(\center)
-		.background_(Color.rand(0.85, 0.95))
+		.background_(Color.rand(0.75, 0.95))
 		.stringColor_(Color.rand(0.15, 0.25));
-		this.flow.nextLine;
+	}
 
-		this.add_gui_controls;
+
+
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	// this is where the scope view is created
+	make_scope_view{
+
+		this.scope_view = View(this.view, Rect(0, 0, 185, 80));
+
+		// set size bounds for VLayout compatibility
+		this.scope_view.minSize_(Size(this.scope_view.bounds.width,
+			this.scope_view.bounds.height));
+		this.scope_view.maxSize_(Size(this.scope_view.bounds.width,
+			this.scope_view.bounds.height));
+
+
+
+		// this.server.sync;
+		PedalScope(this.server, 1, this.scope_bus.index, 1024, 1, 'audio', this.scope_view)
+		.index_(this.scope_bus.index)
+		.view.children[0]
+		.style_(0)
+		.fill_(true)
+		.yZoom_(8)
+		.waveColors_([Color.new(0.5.rrand(0.85),0.5.rrand(0.85), 0.5.rrand(0.85))])
+		.focus
+		.start;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////
+	// this is where the scope view is created
+	scope{
+		var out;
+		// this.synth_node.postln
+		this.out.postln;
+
+		if (this.out.isKindOf(Bus).not, {
+			out = this.out;
+		}, {
+			out = this.out.index;
+		});
+
+		this.scope_node = SynthDef((this.synthdef.asString ++ "_scope").asSymbol,
+			{arg in, out;
+				var sig;
+				sig = In.ar(in, 1);
+				Out.ar(out, sig);
+		}).play(this.synth_node, [\in, out, \out, this.scope_bus.index], \addAfter);
 	}
 
 
 	add_gui_controls{
+		this.control_view = FlowView(
+			parent: this.view,
+			bounds: Rect(0, 0, 200, 280))
+		.minSize_(Size(200, 150));
 		this.mappable_args.do({
-			arg m_arg;
+			arg m_arg, count;
 			if(m_arg.gui_object == \knob, {
+				if((count.mod(4) == 0) && (count != 0), {
+					this.control_view.decorator.nextLine;
+				});
 				EZKnob.new(
-					parent: this.view,
-					bounds: 40@80,
+					parent: this.control_view,
+					bounds: 43@70,
 					label: m_arg.symbol.asString.toUpper,
 					controlSpec: m_arg.control_spec,
 					action: {
@@ -167,16 +264,39 @@ Pedal {
 					layout: \vert
 				)
 				.setColors(
-					stringBackground: Color.rand(0.85, 0.95),
+					stringBackground: Color.rand(0.75, 0.95),
 					stringColor: Color.rand(0.05, 0.15),
-					numBackground: Color.rand(0.85, 0.95),
+					numBackground: Color.rand(0.75, 0.95),
 					numStringColor: Color.rand(0.05, 0.15),
 					numNormalColor: Color.rand(0.05, 0.15)
 				)
 				.font_(Font("Helvetica", 9));
+
 			});
-		// });
+			// });
 		});
+		// this.view.decorator.nextLine;
+		// this.view.layout.add(gui_control_view);
+	}
+
+	add_buttons{
+		var bypass_button;
+
+		this.button_view = Button.new(
+			parent: this.view,
+			bounds: Rect(0, 0, this.view.bounds.width-10, 20))
+		.states_([
+			["BYPASS", Color.new255(51, 51, 51), Color.new(0.9, 0.5, 0.5)],
+			["ON", Color.new255(51, 51, 51), Color.new(0.5, 0.9, 0.5)]])
+		.action_({
+			arg button;
+			button.value.switch(
+				0, {this.on; button.background_(Color.new(0.9, 0.5, 0.5))},
+				1, {this.bypass; button.background_(Color.new(0.5, 0.9, 0.5))});
+
+		});
+
+		// this.view.layout.add(bypass_button);
 	}
 
 
@@ -188,10 +308,14 @@ Pedal {
 			\panner -> Pedal.panner(),
 			\grain_pitch_shifter -> Pedal.grain_pitch_shifter(),
 			\pitch_follower -> Pedal.pitch_follower(),
-			\mono_pitch -> Pedal.mono_pitch(),
+			\pitch_shift -> Pedal.pitch_shift(),
 			\saw_synth -> Pedal.saw_synth(),
 			\tri_synth -> Pedal.tri_synth(),
-			\sine_synth -> Pedal.tri_synth()
+			\sine_synth -> Pedal.tri_synth(),
+			\fm_synth -> Pedal.fm_synth(),
+			\delay -> Pedal.delay(),
+			\compressor -> Pedal.compressor(),
+			\freeverb -> Pedal.freeverb()
 		]);
 		all.keysValuesDo({
 			arg key, value;
@@ -200,3 +324,4 @@ Pedal {
 		^all
 	}
 }
+

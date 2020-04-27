@@ -3,105 +3,45 @@
 // Look at the pedal directory
 Pedal.directory
 
-
-s.boot;
+s.plotTreeView(0.5, Window.new.front.alwaysOnTop_(true));
+//HEADPHONES RECOMMENDED!!!!!
 
 (
 s.waitForBoot({
-w = Window.new(bounds:500@500).front.alwaysOnTop_(true);
-~pedalboard = Pedalboard.new(s, w);
+	// main window
+	w = Window.new(
+		name: "PEDALBOARD",
+		bounds:1040@305).front.alwaysOnTop_(true);
 
-~input = Pedal.input_buffer();
-~saw = Pedal.saw_synth();
-~sine = Pedal.sine_synth();
-~panner = Pedal.panner();
+	//pedalboard object holds a list with pedal pointers
+	~pedalboard = Pedalboard.new(s, w);
 
+	// our pedal objects
+	~input = Pedal.input_buffer();
 
-~pedalboard.add(~input);
+	~pshift = Pedal.pitch_shift();
+	~compressor = Pedal.compressor();
+	~fm = Pedal.fm_synth();
+	~freeverb = Pedal.freeverb();
+	~delay = Pedal.delay();
+	~panner = Pedal.panner();
 
-~pedalboard.add(~saw);
-
-~pedalboard.add(~sine);
-
-~pedalboard.add(~panner);
+	~pedalboard.add(~input);
+	~pedalboard.add(~compressor);
+	~pedalboard.add(~pshift);
+	~pedalboard.add(~fm);
+	~pedalboard.add(~delay);
+	~pedalboard.add(~freeverb);
+	~pedalboard.add(~panner);
 });
 )
 
-~sine.node.isRunning
-~sine.node.isPlaying
 
-s.plotTreeView(0.5, Window.new.front.alwaysOnTop_(true));
+ServerOptionsGui(s)
+Spectogram
+~pedalboard.insert(0, Modulator.noise(~pshift, \interval))
 
-w = Window.new.front.alwaysOnTop_(true);
-p = Pedal.saw_synth(s, 0, 0, nil)
-p.make_view(w, Rect(0, 0, 200, 200))
+~pedalboard.insert(6, Modulator.tri(~delay, \delay));
+~pedalboard.at(0).synth_node.get(\interval, {arg v; v.postln})
 
-w.view.minSizeHint
-
-
-
-
-
-//these work now!
-~pedalboard.toggle_off(2);
-~pedalboard.toggle_off(1);
-~pedalboard.toggle_off(0);
-
-~pedalboard.toggle_on(0);
-~pedalboard.toggle_on(2);
-~pedalboard.toggle_on(1);
-
-
-
-
-
-
-~saw.scope(\interval)
-~saw.node.get(\wet, {arg v; v.postln})
-~saw.node.set(\dry, 0)
-
-~pedalboard.at(1).node.get(\wet, {arg v; v.postln})
-
-
-Synth
-
-s.scope;
-s.freqscope;
-s.plotTree.alwaysOnTop_(true)
-
-
-( //here the third view is fit to both the right and bottom innerBounds
-w = Window.new;
-w.view.decorator = d = FlowLayout.new( w.view.bounds, 10@10, 20@5 );
-Slider2D( w.view,140@140 ).background_( Color.rand );
-Slider2D( w.view,140@140 ).background_( Color.rand );
-d.nextLine;
-Slider2D( w.view, d.indentedRemaining ).background_( Color.rand );
-w.front;
-)
-
-
-
-//ideas for pedals:
-
-
-//make a lofi compressor pedal using Dust, Compander, and Pitchshifter, RLPF in honor of the zvex lofi junky
-//something with Klank?
-//gverb//freeverb
-//combc delays
-//envelope filter
-//
-
-
-Pedal.directory
-
-
-Pedalboard
-
-
-
-
-
-
-
-
+~pedalboard.insert(0, Modulator.pulse(~input, \gain));

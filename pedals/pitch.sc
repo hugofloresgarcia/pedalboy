@@ -21,6 +21,20 @@
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
+				\time_disp -> MappableArg(
+					symbol: \time_disp,
+					bounds: 0@1.0,
+					default_value: 0,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\pitch_disp -> MappableArg(
+					symbol: \pitch_disp,
+					bounds: 0@1.0,
+					default_value: 0,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
 				\wet -> MappableArg.wet(
 					bus: Bus.control(server, 1)
 				),
@@ -31,7 +45,7 @@
 			ugen_func: {
 				arg in = 0, out = 0, interval = 0,
 				window_size = 0.01,
-				pitch_dispersion = 0, time_dispersion = 0,
+				pitch_disp = 0, time_disp = 0,
 				wet = 0.5, dry =0.5;
 				var sig, dry_sig;
 				sig = In.ar(in, 1);
@@ -41,8 +55,8 @@
 					in:sig,
 					windowSize: window_size,
 					pitchRatio: interval.midiratio,
-					pitchDispersion: pitch_dispersion,
-					timeDispersion: time_dispersion
+					pitchDispersion: pitch_disp,
+					timeDispersion: time_disp
 				);
 				sig = Mix.ar([wet * sig, dry * dry_sig]);
 				// sig.scope;
@@ -98,7 +112,7 @@
 	}
 
 
-	*mono_pitch{
+	*pitch_shift{
 		|server, in, out, group|
 		^Pedal.from_synth_params(
 			server: server,
@@ -113,6 +127,13 @@
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
+				\formant -> MappableArg.new(
+					symbol: \formant,
+					bounds: 0@1,
+					default_value: 1,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
 				\wet -> MappableArg.wet(
 					bus: Bus.control(server, 1)
 				),
@@ -121,16 +142,27 @@
 				)
 			]),
 			ugen_func: {
-				arg in, out, interval = 12, wet = 1, dry = 1;
+				arg in, out, interval = 12, formant = 0,  wet = 1, dry = 1;
 				var freq, hasFreq, sig;
 				in = In.ar(in);
 				# freq, hasFreq = Pitch.kr(in);
+
+				sig = PitchShiftPA.ar(
+					in: in,
+					freq: freq,
+					pitchRatio: interval.midiratio,
+					formantRatio: 1  +  formant * (interval.midiratio-1),
+					minFreq: 20,
+					maxFormantRatio: 1);
+
 				sig = Mix.ar([
-					SinOsc.ar(freq * interval.midiratio) * in * wet,
+					sig * wet,
 					in * dry]);
-				Out.ar(out, sig);
+				ReplaceOut.ar(out, sig);
 			},
-			name: \mono_pitch,
+			name: \pitch_shift,
 			addaction: \addAfter);
 	}
 }
+
+
