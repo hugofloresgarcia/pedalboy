@@ -4,6 +4,7 @@ PedalBoy {
 	<>num_active = 0;
 
 	var
+	<>instance_id,
 	<>server,
 	<>in,
 	<>out,
@@ -20,6 +21,7 @@ PedalBoy {
 
 	<>gui_objs,
 	<>master_bounds,
+	<>knobs,
 
 	<>scope_view,
 	<>control_view,
@@ -34,6 +36,10 @@ PedalBoy {
 	<>scope_bus;
 
 	*new{|server, in, out, group|
+		server = server ? Server.default;
+		if(server.hasBooted.not, {
+			Error("server has not been booted").throw;
+		});
 		^super.new.init(server, in, out, group);
 
 	}
@@ -46,6 +52,7 @@ PedalBoy {
 
 	init{|server, in, out, group|
 		num_active = num_active + 1;
+		this.instance_id = num_active;
 		this.server = server;
 		this.in = in;
 		this.out = out;
@@ -111,7 +118,20 @@ PedalBoy {
 		});
 	}
 
-	assign_midi{|bus|
+	assign_knob{|ccNum, argument|
+		var m_arg = this.mappable_args[argument];
+		m_arg.postln;
+		MIDIdef.cc(
+			key: ("\knob_"++ argument.asString ++ this.synthdef.asString).asSymbol,
+			func: {
+				arg val;
+				var m_arg = this.mappable_args[argument];
+				var knob = this.knobs[m_arg.symbol];
+				val = knob.controlSpec.map(val / 127);
+				Routine({
+					knob.valueAction_(val);
+				}).play(AppClock)
+		}, ccNum: ccNum);
 
 	}
 
@@ -141,12 +161,12 @@ PedalBoy {
 		this.synth_node.free;
 		this.scope_node.free;
 	}
-	get_arg{|argument|
+	get_bus{|argument|
 		//return the control bus associated with an argument
 		^this.mappable_args[argument].bus;
 	}
 
-	set_arg{|argument, value|
+	set_bus{|argument, value|
 		this.get_bus(argument).set(value);
 	}
 
@@ -188,7 +208,6 @@ PedalBoy {
 				this.scope_view,
 				this.control_view,
 				this.bypass_button
-
 			)
 		);
 	}
@@ -271,6 +290,7 @@ PedalBoy {
 	add_gui_controls{
 		var b = this.master_bounds;
 		var a = this.view.bounds.extent;
+		this.knobs = Dictionary.new();
 		this.control_view = FlowView(
 			parent: this.view,
 			bounds: Rect(0, 0, 200*a.x/b.x, 280*a.y/b.y))
@@ -282,7 +302,7 @@ PedalBoy {
 				if((count.mod(4) == 0) && (count != 0), {
 					this.control_view.decorator.nextLine;
 				});
-				EZKnob.new(
+				this.knobs.add(m_arg.symbol -> EZKnob.new(
 					parent: this.control_view,
 					bounds: (43*a.x/b.x)@(70*a.y/b.y),
 					label: m_arg.symbol.asString.toUpper,
@@ -290,7 +310,7 @@ PedalBoy {
 					action: {
 						arg v;
 						m_arg.bus.set(v.value);},
-					initVal: m_arg.default_value,
+					initVal: m_arg.bus.getSynchronous,
 					initAction: true,
 					labelWidth: 60 * a.x/b.x,
 					labelHeight: 20 * a.y/b.y,
@@ -306,7 +326,7 @@ PedalBoy {
 					numStringColor: Color.rand(0.05, 0.15),
 					numNormalColor: Color.rand(0.05, 0.15)
 				)
-				.font_(Font("Helvetica", 9));
+				.font_(Font("Helvetica", 9)));
 
 			});
 			// });
@@ -356,7 +376,8 @@ PedalBoy {
 			\freeverb -> PedalBoy.freeverb(),
 			\vibrato -> PedalBoy.vibrato(),
 			\chorus -> PedalBoy.chorus(),
-			\env_filter -> PedalBoy.env_filter()
+			\env_filter -> PedalBoy.env_filter(),
+			\wah -> PedalBoy.wah(),
 		]);
 		all.keysValuesDo({
 			arg key, value;
@@ -364,5 +385,33 @@ PedalBoy {
 		});
 		^all
 	}
+
+	set_all_knobs{|knob_value_list|
+		this.control_view.children.do({
+			arg ezknob, index;
+			ezknob.children[1].valueAction_(knob_value_list[index]);
+		});
+	}
+
+	freeze_knobs{
+		var knob_values = List.new();
+		this.control_view.children.do({
+			arg ezknob;
+			knob_values.add(ezknob.children[1].value)});
+		^knob_values;
+	}
+
+
+	freeze_dict{
+		var dict, path;
+		dict = Dictionary.with(*[
+			\name -> this.synthdef,
+			\is_bypassed -> this.bypass_button.value,
+			\knob_values -> this.freeze_knobs(),
+		]);
+		^dict = dict;
+	}
+
 }
+
 

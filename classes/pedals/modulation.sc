@@ -46,7 +46,7 @@ Modulator : PedalBoy {
 	}
 
 	*noise{|parent, argument|
-		^this.newWithUgen(parent, argument, LFNoise0)
+		^this.newWithUgen(parent, argument, LFNoise1)
 	}
 
 
@@ -112,7 +112,7 @@ Modulator : PedalBoy {
 
 
 		// this.server.sync;
-		PedalBoyScope(this.server, 1, this.scope_bus.index, 1024, 1, 'control', this.scope_view)
+		PedalScope(this.server, 1, this.scope_bus.index, 1024, 1, 'control', this.scope_view)
 		.index_(this.scope_bus.index)
 		.view.children[0]
 		.style_(0)
@@ -237,14 +237,10 @@ Modulator : PedalBoy {
 
 					var quarter= maxdelaytime*0.25;
 
-
-
 					//%half+(quarter*LPF.ar(WhiteNoise.ar,rrand(1.0,10)))
 
 					DelayC.ar(in, maxdelaytime, LFNoise1.kr(Rand(5,10),0.01,0.02) )
 				});
-
-
 
 
 				sig = Mix.ar([sig * wet, dry * in]);

@@ -3,7 +3,7 @@ MappableArg {
 	<>symbol,
 	<>bounds,
 	<>control_spec,
-	<>default_value,
+	<default_value,
 	<>gui_object,
 	<>bus,
 	<>warp;
@@ -90,12 +90,14 @@ MappableArg {
 	init{|symbol, bounds, default_value, warp, gui_object, bus|
 		this.symbol = symbol;
 		this.bounds = bounds;
-		this.default_value = default_value;
+
 		this.warp = warp;
 
 		this.gui_object = gui_object;
 		this.bus = bus;
 
+		this.bus.setSynchronous(default_value);
+		this.default_value = default_value;
 		this.control_spec = ControlSpec(this.bounds.x, this.bounds.y, this.warp);
 	}
 
@@ -103,5 +105,9 @@ MappableArg {
 		^this.bus.asMap;
 	}
 
+
+	default_value_{|val|
+		this.bus.setSynchronous(val);
+	}
 
 }
