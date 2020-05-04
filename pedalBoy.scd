@@ -8,6 +8,21 @@ s.plotTreeView(0.5, Window.new.front.alwaysOnTop_(true));
 //run this line to look at the path
 Platform.userExtensionDir
 
+~pedalboard.save()
+~pedalboard.load
+Pedalboard.load()
+
+
+//fix bypass at begginning and at insert/remove and remake view
+//drag and drop
+//feedback
+//patch cables
+//vocoder with filter banks
+//phase vocoder with fft?
+moveTo
+
+Buffer.freeAll
+
 (
 s.waitForBoot({
 	//pedalboard object holds a list with pedal pointers
@@ -20,29 +35,35 @@ s.waitForBoot({
 	~input = PedalBoy.input_buffer();
 	~pedalboard.add(~input);
 
-	// a cool fm synth. monophonic
+	/*	// a cool fm synth. monophonic
 	~fm = PedalBoy.fm_synth();
-	~pedalboard.add(~fm);
+	~pedalboard.add(~fm);*/
+
+	~saw = PedalBoy.saw_synth();
+	~pedalboard.add(~saw);
+
+	~fshift = PedalBoy.freq_shift();
+	~pedalboard.add(~fshift);
 
 	// wah pedal. the ctrl knob is the "expression" pedal
 	~wah = PedalBoy.wah();
 	~pedalboard.add(~wah);
 
 	//vanilla envelope filter
-	~env_filter = PedalBoy.env_filter();
+	~env_filter = PedalBoy.bitcrusher();
 	~pedalboard.add(~env_filter);
 
 	//vanilla compressor
-	~compressor = PedalBoy.compressor();
+	~compressor = PedalBoy.vinyl_boy();
 	~pedalboard.add(~compressor);
 
 	//pitch shifter (better than the default ugen)
-	~pshift = PedalBoy.pitch_shift();
+	~pshift = PedalBoy.g_hex();
 	~pedalboard.add(~pshift);
 
-	//vibrato
+	/*	//vibrato
 	~vib = PedalBoy.vibrato();
-	~pedalboard.add(~vib);
+	~pedalboard.add(~vib);*/
 
 	~delay = PedalBoy.delay();
 	~pedalboard.add(~delay);
@@ -50,19 +71,76 @@ s.waitForBoot({
 	~freeverb = PedalBoy.freeverb();
 	~pedalboard.add(~freeverb);
 
+	~freeze = FreezeBoy.freeze_boy();
+	~pedalboard.add(~freeze);
+
+	~looper = LooperBoy.looper();
+	~pedalboard.add(~looper);
+	~looper.assign_loop_controls(38, 50);
+
 	~panner = PedalBoy.panner();
 	~pedalboard.add(~panner);
 
-	//assign bypass buttons to midinotes, ascending chromatically in order
+	// assign bypass buttons to midinotes, ascending chromatically in order
 	~pedalboard.assign_bypass(60);
 });
 )
+
+
+
+~looper.scope_bus
+~looper.play_synths.at(0).trace
+(
+~pedalboard = Pedalboard.new(
+	server: s,
+	in_bus: 0,
+	out_bus: 0);
+
+// our pedal objects
+~input = PedalBoy.input_buffer();
+~pedalboard.add(~input);
+
+
+~looper = LooperBoy.looper();
+~pedalboard.add(~looper);
+~looper.assign_loop_controls(38, 50);
+
+
+~panner = PedalBoy.panner();
+~pedalboard.add(~panner);
+)
+~looper.inspect
+
+
+~input.assign_knob(91, \gain);
+
+~wah.assign_knob(91, \ctrl);
+~pshift.assign_knob(91, \interval);
+
+~pedalboard.insert(0, Modulator.brown_noise(~input, \gain));
+~pedalboard.insert(4, Modulator.brown_noise(~wah, \ctrl))
+
+~fm.assign_knob(11, \index)
+~pedalboard.patch_cable
+
+~pedalboard.insert(1, Modulator.sine(~fm, \index));
+
+~pedalboard.insert(10, Modulator.brown_noise(~panner, \pos));
+~pedalboard.insert(10, Modulator.noise(~panner, \pos));
+
+~vib.assign_knob(11, \speed);
+~env_filter.assign_knob(91, \min);
+~pshift.assign_knob(93, \wet);
+
+MIDIClient.init;
+MIDIIn.connectAll;
+MIDIFunc.trace;
+
 
 // save current pedalboard configuration
 ~pedalboard.save
 
 //load a previous pedalboard configuration. make sure to initialize server
-s.boot;
 ~pedalboard = Pedalboard.load(s, 0, 0, nil)
 
 //insert a pedal into our signal chain
@@ -72,13 +150,13 @@ s.boot;
 ~wah = ~pedalboard.at(1);
 
 //modulate ANY knob in our gui using a Modulator
-~mod = Modulator.sine(
+~mod = Modulator.noise(
 	parent: ~wah,
 	argument: \ctrl);
-~pedalboard.insert(1, ~mod);
+~pedalboard.insert(2, ~mod);
 
 //remove a pedal from our pedalboard
-Pedalboard.remove(1);
+~pedalboard.remove(1);
 
 //easter egg: party mode
 ~pedalboard.go_crazy_aaaa_go_stupid(true)
@@ -86,108 +164,13 @@ Pedalboard.remove(1);
 //assign a knob to a ccNum
 ~pshift.assign_knob(1, \ctrl);
 
+//assign bypass to a noteON
+~pshift.assign_bypass(69);
+//move pedal from index a to index b
+~pedalboard.move_to(3, 1)
 
+/// EXTRA: MAKING YOUR OWN PEDALS
 
-
-
-(
-SynthDef(\freeze, {
-	arg in = 0, out = 0, wet = 0.5, dry = 0.7, rate = 1, trigger;
-	var sig, grainMaker, buftrigger, trigRate, centerPos, overlap = 4, dur = 0.01, bufnum;
-
-	bufnum = LocalBuf.new(48e3 * 0.1);
-
-	in = SoundIn.ar(in);
-
-	RecordBuf.ar(
-		inputArray: in,
-		bufnum: bufnum,
-		offset: 0.0,
-		recLevel: 1,
-		preLevel: 0,
-		run: trigger-0.5,
-		loop: 0,
-		trigger: trigger-0.5,
-		doneAction: 0);
-
-/*	trigRate = overlap / dur;
-	centerPos = BufDur.kr(bufnum) * 0.25;
-	buftrigger = Impulse.ar(trigRate);
-
-	centerPos = Phasor.ar(
-		trig: 0,
-		rate:  1/BufSampleRate.kr(bufnum) / 1,
-		start: 0,
-		end: BufFrames.kr(bufnum)
-	);
-
-
-	sig = TGrains.ar(
-		numChannels: 2,
-		trigger: buftrigger,
-		bufnum: bufnum,
-		rate: rate,
-		centerPos: centerPos,
-		dur: dur,
-		// pan: LFNoise1.kr(1),
-		amp: 0.3,
-		interp: 4);*/
-
-
-
-	sig = PlayBuf.ar(
-		numChannels: 1,
-		bufnum: bufnum,
-		rate: BufRateScale.kr(bufnum) * rate,
-		trigger: trigger-0.5,
-		startPos: 0.0,
-		loop: 1,
-		doneAction: 0);
-
-
-	sig = Mix.ar([sig * wet, in * dry]);
-	// Out.ar(out, sig);
-}).add;
-)
-
-a =Synth(\freeze, [\trigger, 1]).set(\dry, 0)
-a.set(\trigger, 0)
-
-Routine({
-~freeze = {
-	arg feedback = 1, sustain = 1;
-	var sig, local;
-
-	sig = SoundIn.ar(0);
-	local = LocalIn.ar(2) + sig.dup * sustain;
-
-	15.do({
-			local = AllpassN.ar(local, 0.06, Rand(0.001, 0.06), inf)
-		});
-
-	LocalOut.ar(local);
-
-	Out.ar(0, sig + local);
-}.play;
-0.06.wait;
-	// ~freeze.set(\sustain, 0)
-}).play
-
-~freeze.set(\feedback, 0);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Latch for downsampler
 
 

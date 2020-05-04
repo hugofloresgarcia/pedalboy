@@ -7,6 +7,7 @@ Modulator : PedalBoy {
 
 	*newWithUgen{|parent, argument, ugen|
 
+
 		var min = parent.mappable_args[argument].bounds.x;
 		var max = parent.mappable_args[argument].bounds.y;
 		var bus = parent.mappable_args[argument].bus;
@@ -24,6 +25,7 @@ Modulator : PedalBoy {
 			parent.node
 		).modinit(min, max, ugen, parent);
 	}
+
 
 	modinit{|min, max, ugen, parent|
 		this.parent = parent;
@@ -49,10 +51,14 @@ Modulator : PedalBoy {
 		^this.newWithUgen(parent, argument, LFNoise1)
 	}
 
+	*brown_noise{|parent, argument|
+		^this.newWithUgen(parent, argument, BrownNoise)
+	}
+
 
 	set_synth_params{
 		this.addaction = \addBefore;
-		this.synthdef = (\mod.asString ++ "_" ++ this.parent.synthdef.asString).asSymbol;
+		this.synthdef = \mod;
 		this.scope_bus = Bus.control(this.server, 1);
 
 		this.arg_dict = Dictionary.with(*[
@@ -150,6 +156,21 @@ Modulator : PedalBoy {
 				Out.kr(out, sig);
 		}).play(this.synth_node, [\in, out, \out, this.scope_bus.index], \addAfter);
 	}
+
+	*directory{
+		var all = Dictionary.with(*[
+
+
+		]);
+		all.keysValuesDo({
+			arg key, value;
+			key.postln;
+		});
+		^all
+	}
+
+
+
 }
 
 + PedalBoy {
@@ -165,7 +186,7 @@ Modulator : PedalBoy {
 				\depth -> MappableArg.new(
 					symbol: \depth,
 					bounds: 0@1,
-					default_value: 0.5,
+					default_value: 0.3,
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
@@ -176,7 +197,7 @@ Modulator : PedalBoy {
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
-				\wet -> MappableArg.wet(Bus.control(server, 1)).default_value_(0.9),
+				\wet -> MappableArg.wet(Bus.control(server, 1)).default_value_(1),
 				\dry -> MappableArg.dry(Bus.control(server, 1)).default_value_(0.01),
 			]),
 			ugen_func: {
@@ -197,7 +218,50 @@ Modulator : PedalBoy {
 		);
 	}
 
-	*chorus{
+	*shibrato{
+		|server, in, out, group|
+		^PedalBoy.from_synth_params(
+			server: server,
+			in: in,
+			out: out,
+			group: group,
+			mappable_arg_dict: Dictionary.with(*[
+				\depth -> MappableArg.new(
+					symbol: \depth,
+					bounds: 0@100,
+					default_value: 0.3,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\speed -> MappableArg.new(
+					symbol: \speed,
+					bounds: 0@100,
+					default_value: 0.5,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\wet -> MappableArg.wet(Bus.control(server, 1)).default_value_(1),
+				\dry -> MappableArg.dry(Bus.control(server, 1)).default_value_(0.01),
+			]),
+			ugen_func: {
+				arg in, out, wet, dry, depth, speed;
+				var sig;
+				in = In.ar(in);
+
+				sig = DelayC.ar(
+					in: in,
+					maxdelaytime: 0.2,
+					delaytime: SinOsc.ar(speed).range(0, 0.02) * depth);
+
+				sig = Mix.ar([sig * wet, dry * in]);
+				ReplaceOut.ar(out, sig);
+			},
+			name: \vibrato,
+			addaction: \addAfter,
+		);
+	}
+
+/*	*chorus{
 		|server, in, out, group|
 		^PedalBoy.from_synth_params(
 			server: server,
@@ -208,7 +272,7 @@ Modulator : PedalBoy {
 				\depth -> MappableArg.new(
 					symbol: \depth,
 					bounds: 0@1,
-					default_value: 0.5,
+					default_value: 0.3,
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
@@ -229,18 +293,10 @@ Modulator : PedalBoy {
 
 				in = In.ar(in);
 
-				sig = Mix.fill(n, {
-
-					var maxdelaytime= rrand(0.01,0.03);
-
-					var half= maxdelaytime*0.5;
-
-					var quarter= maxdelaytime*0.25;
-
-					//%half+(quarter*LPF.ar(WhiteNoise.ar,rrand(1.0,10)))
-
-					DelayC.ar(in, maxdelaytime, LFNoise1.kr(Rand(5,10),0.01,0.02) )
-				});
+				sig = Mix.ar([DelayC.ar(
+					in: in,
+					maxdelaytime: 0.2,
+					delaytime: SinOsc.ar(Rand(0.01, speed)).range(0, 0.02) * Rand(0.01, depth))!10]);
 
 
 				sig = Mix.ar([sig * wet, dry * in]);
@@ -249,6 +305,6 @@ Modulator : PedalBoy {
 			name: \chorus,
 			addaction: \addAfter,
 		);
-	}
+	}*/
 
 }

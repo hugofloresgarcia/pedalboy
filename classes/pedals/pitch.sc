@@ -123,14 +123,14 @@
 				\interval -> MappableArg.new(
 					symbol: \interval,
 					bounds: -24@24,
-					default_value: 12,
+					default_value: -12,
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
 				\formant -> MappableArg.new(
 					symbol: \formant,
 					bounds: 0@1,
-					default_value: 1,
+					default_value: 0,
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
@@ -145,6 +145,7 @@
 				arg in, out, interval = 12, formant = 0,  wet = 1, dry = 1;
 				var freq, hasFreq, sig;
 				in = In.ar(in);
+
 				# freq, hasFreq = Pitch.kr(in);
 
 				sig = PitchShiftPA.ar(
@@ -163,6 +164,121 @@
 			name: \pitch_shift,
 			addaction: \addAfter);
 	}
+
+	*g_hex{
+		|server, in, out, group|
+		^PedalBoy.from_synth_params(
+			server: server,
+			in: in,
+			out: out,
+			group: group,
+			mappable_arg_dict: Dictionary.with(*[
+				\interval -> MappableArg.new(
+					symbol: \interval,
+					bounds: -24@24,
+					default_value: -12,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\ceil -> MappableArg.new(
+					symbol: \ceil,
+					bounds: 38@72,
+					default_value: 60,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\formant -> MappableArg.new(
+					symbol: \formant,
+					bounds: 0@1,
+					default_value: 0,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\gain -> MappableArg.gain(Bus.control(server, 1)).default_value_(0.5),
+				\wet -> MappableArg.wet(
+					bus: Bus.control(server, 1)
+				).default_value_(1),
+				\dry -> MappableArg.dry(
+					bus: Bus.control(server, 1)
+				).default_value_(0.6)
+			]),
+			ugen_func: {
+				arg in, out, gain, interval = 12, formant = 0,  wet = 1, dry = 1, ceil = 60;
+				var freq, hasFreq, sig, fshift;
+				in = In.ar(in);
+
+				# freq, hasFreq = Pitch.kr(in);
+
+				hasFreq = Lag.kr(hasFreq);
+				freq = Lag.kr(freq);
+
+				fshift = PitchShiftPA.ar(
+					in: LPF.ar(in, ceil.midicps*0.9),
+					freq: freq,
+					pitchRatio: interval.midiratio,
+					formantRatio: 1  +  formant * (interval.midiratio-1),
+					minFreq: 20,
+					maxFormantRatio: 1);
+
+				sig = Select.ar(
+					//if our frequency is less than the ceiling, activate octave down
+					which: (freq.cpsmidi > ceil),
+					array: [fshift,in]
+				);
+				sig = LPF.ar(sig, ceil.midicps*0.9) *4*gain;
+				// sig = fshift;
+				sig = Mix.ar([
+					sig * wet,
+					in * dry]);
+				ReplaceOut.ar(out, sig);
+			},
+			name: \g_hex,
+			addaction: \addAfter);
+	}
+
+	*freq_shift{
+		|server, in, out, group|
+		^PedalBoy.from_synth_params(
+			server: server,
+			in: in,
+			out: out,
+			group: group,
+			mappable_arg_dict: Dictionary.with(*[
+				\interval -> MappableArg.new(
+					symbol: \interval,
+					bounds: -24@24,
+					default_value: -12,
+					warp: \lin,
+					gui_object: \knob,
+					bus: Bus.control(server, 1)),
+				\wet -> MappableArg.wet(
+					bus: Bus.control(server, 1)
+				),
+				\dry -> MappableArg.dry(
+					bus: Bus.control(server, 1)
+				)
+			]),
+			ugen_func:{
+				arg in, out, interval = 12, formant = 0,  wet = 1, dry = 1;
+				var freq, hasFreq, sig;
+				in = In.ar(in);
+
+				sig = FreqShift.ar(
+					in: in,
+					freq: 440 *interval.midiratio);
+
+				sig = Mix.ar([
+					sig * wet,
+					in * dry]);
+				ReplaceOut.ar(out, sig);
+			},
+			name: \freq_shift,
+			addaction: \addAfter,
+		)
+	}
+
+
+
 }
 
 

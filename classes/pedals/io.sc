@@ -50,13 +50,15 @@
 			out: out,
 			group: group,
 			mappable_arg_dict: Dictionary.with(*[
-				\pos -> MappableArg.pos(Bus.control(server, 1))
+				\pos -> MappableArg.pos(Bus.control(server, 1)),
+				\gain -> MappableArg.gain(Bus.control(server, 1)),
 			]),
 			ugen_func: {
-				arg in, out, pos;
+				arg in, out, pos, gain;
 				var sig;
 				sig = In.ar(in);
 				sig = Pan2.ar(sig, pos);
+				sig = sig * 5 * gain;
 				ReplaceOut.ar(out, sig)
 			},
 			name: \panner,

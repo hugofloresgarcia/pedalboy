@@ -1,13 +1,17 @@
 PedalBoy {
 	// abstract class for all pedals
 	classvar
-	<>num_active = 0;
+	<>num_active = 0,
+	<>all;
 
 	var
 	<>instance_id,
 	<>server,
 	<>in,
 	<>out,
+	<>parent,
+
+	<>mididef_dict,
 
 	<>synthdef,
 	<>synth_node,
@@ -29,6 +33,9 @@ PedalBoy {
 	<>button_view,
 	<>bypass_button,
 
+	<>focused_color,
+	<>normal_color,
+
 	<>view,
 	<>flow,
 
@@ -47,7 +54,7 @@ PedalBoy {
 	*from_synth_params{|server, in, out, group, mappable_arg_dict,
 		ugen_func, name = \pedal, addaction = \addToTail|
 
-		^PedalBoy.new(server, in, out, group).synth_param_init(mappable_arg_dict, ugen_func, name, addaction);
+		^this.new(server, in, out, group).synth_param_init(mappable_arg_dict, ugen_func, name, addaction);
 	}
 
 	init{|server, in, out, group|
@@ -66,9 +73,14 @@ PedalBoy {
 
 		if(this.arg_dict.isNil, {
 			this.arg_dict = Dictionary.new();
+			this.mididef_dict = Dictionary.new();
 		});
 		this.arg_dict[\in] = this.in;
 		this.arg_dict[\out] = this.out;
+	}
+
+	is_bypassed{
+		^this.synth_node.isRunning.not;
 	}
 
 	synth_param_init{|mappable_arg_dict, ugen_func, name, addaction|
@@ -102,36 +114,63 @@ PedalBoy {
 		});
 	}
 
+	gui_bypass{
+		this.bypass_button.valueAction_(1);
+	}
+
+	// listen_midi{
+	// 	var result = Bus.control(this.server, 1);
+	// 	var return;
+	//
+	// 	var mididef = MIDIdef.new(\listener, {
+	// 		arg val, num;
+	// 		result.set(num);
+	// 	})
+	// 	while(result.get.isNil,{
+	//
+	// 	});
+	// 	return = result.get;
+	// 	result.free;
+	// 	mididef.free;
+	// 	^result;
+	// }
+
+
 	assign_bypass{|midinote|
-		MIDIdef.noteOn(
-			key: ("bypass_" ++ this.synthdef.asString).asSymbol,
-			func: {
-				arg vel, note;
-				note.postln;
-				Routine({
-					if (note == midinote,{
-						var val;
-						if(this.bypass_button.value == 0, {val = 1}, {val = 0});
-						this.bypass_button.valueAction_(val);
-					});
-				}).play(AppClock)
-		});
+		var midi_key = ("bypass_" ++ this.synthdef.asString).asSymbol;
+		this.mididef_dict.add(
+			\bypass -> MIDIdef.noteOn(
+				key: midi_key,
+				func: {
+					arg vel, note;
+					Routine({
+						if (note == midinote,{
+							var val;
+							if(this.bypass_button.value == 0, {val = 1}, {val = 0});
+							this.bypass_button.valueAction_(val);
+						});
+					}).play(AppClock)
+			});
+		);
 	}
 
 	assign_knob{|ccNum, argument|
 		var m_arg = this.mappable_args[argument];
-		m_arg.postln;
-		MIDIdef.cc(
-			key: ("\knob_"++ argument.asString ++ this.synthdef.asString).asSymbol,
-			func: {
-				arg val;
-				var m_arg = this.mappable_args[argument];
-				var knob = this.knobs[m_arg.symbol];
-				val = knob.controlSpec.map(val / 127);
-				Routine({
-					knob.valueAction_(val);
-				}).play(AppClock)
-		}, ccNum: ccNum);
+		var midi_key = ("\knob_"++ argument.asString ++ this.synthdef.asString).asSymbol;
+
+		this.mididef_dict.add(
+			argument -> MIDIdef.cc(
+				key: midi_key,
+				func: {
+					arg val;
+					var m_arg = this.mappable_args[argument];
+					var knob = this.knobs[m_arg.symbol];
+					val = knob.controlSpec.map(val / 127);
+					Routine({
+						knob.valueAction_(val);
+					}).play(AppClock)
+			}, ccNum: ccNum);
+		);
 
 	}
 
@@ -190,7 +229,8 @@ PedalBoy {
 		this.master_bounds = 200@300;
 		//towards scalable pedals. this was the original size used during prototyping,
 		/// and the views will continue to be scaled accordingly.
-
+		this.normal_color = Color.rand(0.75, 0.95);
+		this.focused_color = this.normal_color.blend(Color.new255(51, 51, 51), 0.2);
 		if(bounds.isKindOf(Point), {
 			"ERROR: you cant put a point in these bounds"
 		});
@@ -201,6 +241,8 @@ PedalBoy {
 		this.make_scope_view;
 		this.add_gui_controls;
 		this.add_buttons;
+
+		// "making view for ".post; this.synthdef.postln;
 
 		this.view.layout_(
 			VLayout(
@@ -218,7 +260,7 @@ PedalBoy {
 		// this.view.layout.insert(
 		this.label_view = View(
 			parent: this.view,
-			bounds: Rect(0, 0, (this.view.bounds.width - 10), 20 * a.y / b.y));
+			bounds: Rect(0, 0, (this.view.bounds.width - 15), 20 * a.y / b.y));
 		this.label_view.minSize_(Size(this.label_view.bounds.width, this.label_view.bounds.height));
 		this.label_view.maxSize_(Size(this.label_view.bounds.width, this.label_view.bounds.height));
 
@@ -230,8 +272,6 @@ PedalBoy {
 		.background_(Color.rand(0.75, 0.95))
 		.stringColor_(Color.rand(0.15, 0.25));
 	}
-
-
 
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
@@ -270,7 +310,7 @@ PedalBoy {
 	scope{
 		var out;
 		// this.synth_node.postln
-		this.out.postln;
+		// this.out.postln;
 
 		if (this.out.isKindOf(Bus).not, {
 			out = this.out;
@@ -287,13 +327,18 @@ PedalBoy {
 	}
 
 
+
+
 	add_gui_controls{
 		var b = this.master_bounds;
 		var a = this.view.bounds.extent;
 		this.knobs = Dictionary.new();
 		this.control_view = FlowView(
 			parent: this.view,
-			bounds: Rect(0, 0, 200*a.x/b.x, 280*a.y/b.y))
+			bounds: Rect(0, 0, 200*a.x/b.x, 280*a.y/b.y),
+			margin: 2@2,
+			gap: 2@2,
+		)
 		.minSize_(Size(200*a.x/b.x, 150*a.y/b.y))
 		.maxSize_(Size(200*a.x/b.x, 150*a.y/b.y));
 		this.mappable_args.do({
@@ -316,9 +361,6 @@ PedalBoy {
 					labelHeight: 20 * a.y/b.y,
 					layout: \vert
 				)
-				// .knobSize_((43*a.x/b.x)@(70*a.y/b.y))
-/*				.minSize_(Size(43*a.x/b.x, 70*a.y/b.y))
-				.maxSize_(Size(43*a.x/b.x, 70*a.y/b.y))*/
 				.setColors(
 					stringBackground: Color.rand(0.75, 0.95),
 					stringColor: Color.rand(0.05, 0.15),
@@ -326,14 +368,27 @@ PedalBoy {
 					numStringColor: Color.rand(0.05, 0.15),
 					numNormalColor: Color.rand(0.05, 0.15)
 				)
-				.font_(Font("Helvetica", 9)));
-
+				.font_(Font("Helvetica", 9))
+				.view.setContextMenuActions(
+					MenuAction("assign knob", {
+						EZNumber.new(
+							parent: nil,
+							bounds: 160@50,
+							label: ("assign" + m_arg.symbol.asString + "(ccNum)"),
+							controlSpec: ControlSpec(0, 127, \lin),
+							action: {arg v; this.assign_knob(v.value.asInteger, m_arg.symbol) ; v.view.parent.close},
+							initVal: 0,
+							initAction: false)
+						.alwaysOnTop_(true);
+					}),
+				))
 			});
 			// });
 		});
 		// this.view.decorator.nextLine;
 		// this.view.layout.add(gui_control_view);
 	}
+
 
 	add_buttons{
 		var b = this.master_bounds;
@@ -342,7 +397,9 @@ PedalBoy {
 
 		this.bypass_button = Button.new(
 			parent: this.view,
-			bounds: Rect(0, 0, this.view.bounds.width-10, 20*a.y/b.y))
+			bounds: Rect(0, 0, this.view.bounds.width-15, 20*a.y/b.y))
+		.minSize_(Size(this.label_view.bounds.width, this.label_view.bounds.height))
+		.maxSize_(Size(this.label_view.bounds.width, this.label_view.bounds.height))
 		.states_([
 			["BYPASS", Color.new255(51, 51, 51), Color.new(0.9, 0.5, 0.5)],
 			["ON", Color.new255(51, 51, 51), Color.new(0.5, 0.9, 0.5)]])
@@ -352,15 +409,15 @@ PedalBoy {
 				0, {this.on; button.background_(Color.new(0.9, 0.5, 0.5))},
 				1, {this.bypass; button.background_(Color.new(0.5, 0.9, 0.5))});
 
-		});
+		})
+		.valueAction_(this.is_bypassed.asInteger);
 
 		// this.view.layout.add(bypass_button);
 	}
 
 
-
-	*directory{
-		var all = Dictionary.with(*[
+	*make_dir{
+		this.all = Dictionary.with(*[
 			\input_buffer -> PedalBoy.input_buffer(),
 			\output_buffer -> PedalBoy.output_buffer(),
 			\panner -> PedalBoy.panner(),
@@ -374,16 +431,27 @@ PedalBoy {
 			\delay -> PedalBoy.delay(),
 			\compressor -> PedalBoy.compressor(),
 			\freeverb -> PedalBoy.freeverb(),
+			\env_filter -> PedalBoy.env_filter(),
 			\vibrato -> PedalBoy.vibrato(),
-			\chorus -> PedalBoy.chorus(),
+			\shibrato -> PedalBoy.shibrato(),
+			\vinyl_boy -> PedalBoy.vinyl_boy(),
+			// \chorus -> PedalBoy.chorus(),
 			\env_filter -> PedalBoy.env_filter(),
 			\wah -> PedalBoy.wah(),
+			\looper_boy -> LooperBoy.looper(),
+			\bitcrusher -> PedalBoy.bitcrusher(),
+			\g_hex -> PedalBoy.g_hex(),
 		]);
-		all.keysValuesDo({
+	}
+
+	*directory{
+		this.all.keysValuesDo({
 			arg key, value;
-			key.postln;
+			// key.postln;
+
+
 		});
-		^all
+		^this.all
 	}
 
 	set_all_knobs{|knob_value_list|

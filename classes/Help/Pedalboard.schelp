@@ -1,0 +1,181 @@
+TITLE:: Pedalboard
+
+
+DESCRIPTION::
+Pedalboard is made to resemble a real life pedalboard.
+the Pedalboard object is used to hold and connect PedalBoy objects together.
+note that to make sound, the first pedal has to be a PedalBoy.input_buffer,
+and the last pedal has to be a Pedalboy.output_buffer or PedalBoy.panner
+
+
+CLASSMETHODS::
+
+METHOD:: new
+creates a new empty pedalboard.
+
+ARGUMENT:: server
+server to run synths on. typically ur default server
+
+ARGUMENT:: in_bus
+input but. typically 0, if ur using the first channel on ur interfcae
+
+ARGUMENT:: out_bus
+output bus. typically 0
+
+ARGUMENT:: window
+parent window. if the window is nil, then a window will be created for u
+
+returns::  a pedalboard object
+
+METHOD:: load
+load a Pedalboard preset from a .pdlbrd file
+
+ARGUMENT:: server
+server to run synths on. typically ur default server
+
+ARGUMENT:: in_bus
+input but. typically 0, if ur using the first channel on ur interfcae
+
+ARGUMENT:: out_bus
+output bus. typically 0
+
+ARGUMENT:: window
+parent window. if the window is nil, then a window will be created for u
+
+returns:: a Pedalboard
+
+
+INSTANCEMETHODS::
+
+
+METHOD:: assign_bypass
+assign each bypass button in our pedalchain a midinote, ascending chromatically.
+the button will be pressed with a noteOn event.
+
+ARGUMENT:: start_note
+fi
+
+METHOD:: clear
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: go_crazy_aaaa_go_stupid
+???????????????????????????
+
+ARGUMENT:: bool
+say true
+
+METHOD:: save
+save current pedalboard to a .pdlbrd file
+
+returns:: (describe returnvalue here)
+
+
+METHOD:: remove
+remove pedal at index
+
+ARGUMENT:: index
+an int
+
+METHOD:: at
+access the pedal at index
+
+ARGUMENT:: index
+an int
+
+returns:: (describe returnvalue here)
+
+METHOD:: insert
+insert a pedal at index
+
+ARGUMENT:: index
+an int
+
+ARGUMENT:: pedal
+a PedalBoy
+
+returns:: (describe returnvalue here)
+
+METHOD:: add
+append pedal to the end of the signal chain
+
+ARGUMENT:: pedal
+a PedalBoy
+
+returns:: (describe returnvalue here)
+
+METHOD:: load
+restore a saved Pedalboard from a .pdlbrd file
+
+returns:: (describe returnvalue here)
+
+
+EXAMPLES::
+
+code::
+// Look at the pedal directory
+PedalBoy.directory
+
+
+(
+s.waitForBoot({
+	//pedalboard object holds a list with pedal pointers
+	~pedalboard = Pedalboard.new(
+		server: s,
+		in_bus: 0,
+		out_bus: 0);
+
+	// our pedal objects
+	~input = PedalBoy.input_buffer();
+	~pedalboard.add(~input);
+
+	//vanilla envelope filter
+	~env_filter = PedalBoy.env_filter();
+	~pedalboard.add(~env_filter);
+
+	//vibrato
+	~vib = PedalBoy.vibrato();
+	~pedalboard.add(~vib);
+
+	~delay = PedalBoy.delay();
+	~pedalboard.add(~delay);
+
+	~freeverb = PedalBoy.freeverb();
+	~pedalboard.add(~freeverb);
+
+	~panner = PedalBoy.panner();
+	~pedalboard.add(~panner);
+
+	//assign bypass buttons to midinotes, ascending chromatically in order
+	~pedalboard.assign_bypass(60);
+});
+)
+
+// save current pedalboard configuration
+~pedalboard.save
+
+//load a previous pedalboard configuration. make sure to initialize server
+~pedalboard = Pedalboard.load(s, 0, 0, nil)
+
+//insert a pedal into our signal chain
+~pedalboard.insert(1, PedalBoy.wah());
+
+//access a pedal instance in our signal chain
+~wah = ~pedalboard.at(1);
+
+//modulate ANY knob in our gui using a Modulator
+~mod = Modulator.sine(
+	parent: ~wah,
+	argument: \ctrl);
+~pedalboard.insert(1, ~mod);
+
+//remove a pedal from our pedalboard
+~pedalboard.remove(1);
+
+//easter egg: party mode
+~pedalboard.go_crazy_aaaa_go_stupid(true)
+
+//assign a knob to a ccNum
+~pshift.assign_knob(1, \ctrl);
+::
