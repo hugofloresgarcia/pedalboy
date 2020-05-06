@@ -9,6 +9,13 @@ A SuperCollider app for real-time effects for ur guitar/voice/etc :)). It uses l
 https://youtu.be/YhLWCQQjVYw
 
 ## Installation
+
+#### if you've never used SuperCollider before
+https://supercollider.github.io/download <br>
+download it from here <br>
+--> know that to "run" SuperCollider code you have to select the text
+and then press Shift + Enter to run it. 
+
 REMEMBER TO WEAR HEADPHONES IF YOU ARE USING YOUR COMPUTER MIC
 
 put this folder in your extensions directory:
