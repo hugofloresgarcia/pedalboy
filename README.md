@@ -5,6 +5,9 @@ A SuperCollider app for real-time effects for ur guitar/voice/etc :)). It uses l
 ![img](../lib/img/pdlbrd.jpg)
 
 
+### Watch the demo
+<iframe width="560" height="315" src="https://www.youtube.com/embed/YhLWCQQjVYw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 #### Installation
 put this folder in your extensions directory:
 
