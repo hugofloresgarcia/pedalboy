@@ -24,7 +24,7 @@ or run this line on SuperCollider to find out:
 `Platform.userExtensionDir`
 
 now, recompile your class library!!!
-Cmd-L or Ctrl-L
+Cmd-Shift-L or Ctrl-Shift-L
 
 ## Loading the default Pedalboard
 run this line in SuperCollider
