@@ -1,0 +1,575 @@
+class:: PitchShiftPA
+summary:: Phase-Aligned Pitch and Formant Shifter
+categories:: UGens>Filters>Pitch
+related:: Classes/PitchShift, Classes/Pitch
+
+description::
+Phase Aligned Wavepacket (Re-)Synthesis (PAWS) pseudo-UGen, allowing for manipulating pitch and formant structure of the sound independently. This allows e.g. shifting pitch while maintaining the formant structure, or changing the formant without changing the pitch.
+
+PitchShiftPA works only for single-voiced (monophonic) sounds and requires tracking of their fundamental frequency (e.g. using the link::Classes/Pitch:: UGen). Good quality of tracking is crucial for achieving good results.
+
+The technique used is also known as Pitch Synchronous Overlap-Add synthesis (PSOLA) or Pitch-Synchronous Granular Synthesis (PSGS). This pseudo-UGen was created by Marcin Pączkowski at DXARTS at the University of Washington, and is based on Juan Pampin's and Joseph Anderson's implementation of Keith Lent's pitch shifting algorithm.
+
+note::PitchShiftPA can also be used as a regular link::#Asynchronous use#asynchronous pitch shifter::.::
+
+References:
+List::
+## Keith Lent, "An Efficient Method for Pitch Shifting Digitally Sampled Sounds", Computer Music Journal
+Vol. 13, No. 4 (Winter, 1989), pp. 65-71. Available online: https://www.jstor.org/stable/3679554
+## DXARTS: https://dxarts.washington.edu/
+## Juan Pampin: https://dxarts.washington.edu/people/juan-pampin
+## Joseph Anderson: https://dxarts.washington.edu/people/joseph-anderson
+## wave packet: https://en.wikipedia.org/wiki/Wave_packet
+::
+
+
+CLASSMETHODS::
+
+METHOD:: ar
+
+ARGUMENT:: in
+The monophonic (single-voice) input signal.
+
+ARGUMENT:: freq
+The tracked frequency of the input signal (e.g. using link::Classes/Pitch:: UGen)
+
+ARGUMENT:: pitchRatio
+The ratio of the pitch shift (1 = original, 0.5 = octave down, 2 = octave up).
+
+ARGUMENT:: formantRatio
+The ratio of the formant shift (1 = original, 0.5 = octave down, 2 = octave up).
+note::formantRatio can also be set to code::nil:: in order to create a version of the UGen that allocates less memory. In this mode only pitch manipulation is available and the formant is not changed.::
+
+ARGUMENT:: minFreq
+Minimum frequency that can be processed (needed for allocating internal buffer). Not modulatable.
+
+ARGUMENT:: maxFormantRatio
+Maximum formant ratio (needed for allocating internal buffer). Not modulatable.
+
+ARGUMENT:: grainsPeriod
+Number of grains per period of the original signal, also known as 'wave packet' quality, or Q (2 grains per period = 1Q).
+
+ARGUMENT:: timeDispersion
+Amount of randomness in the frequency for triggering individual grains. This helps to minimize the amount of combing effect when multiple grains overlap (if code::grainPeriods:: number is higher). It is mostly useful when using PitchShiftPA as an asynchronous pitch shifter. By default it is code::nil:: and does not introduce any randomness.
+
+Discussion::
+code::
+s.boot;
+
+//with a buffer
+b = Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01-44_1.aiff");
+(
+x = {
+	var in = PlayBuf.ar(1, b, BufRateScale.kr(b), loop: 1);
+	PitchShiftPA.ar(
+		in,
+		Pitch.kr(in)[0], //pitch tracking - we take just the frequency
+		MouseX.kr(0.5, 2), //pitchRatio
+		MouseY.kr(0.5, 2), //formantRatio
+	)
+}.play
+)
+x.free;
+
+//with live input - beware of feedback!
+(
+x = {
+	var in = SoundIn.ar(0);
+	PitchShiftPA.ar(
+		in,
+		Pitch.kr(in)[0], //pitch tracking - we take just the frequency
+		MouseX.kr(0.5, 2), //pitchRatio
+		MouseY.kr(0.5, 2), //formantRatio
+	)
+}.play
+)
+x.free;
+::
+See link::#examples#more examples:: below.
+
+SUBSECTION:: Asynchronous use
+PitchShiftPA can be used as a regular asynchronous pitch shifter, similarly to link::Classes/PitchShift::. In that scenario it does not require pitch tracking and works for polyphonic signals, but the formant is not preserved and changes with the pitch shift. The main advantage over using the regular link::Classes/PitchShift:: is that it does not have an upper limit for the pitch shift. The processing delay will increase with increasing the pitch shift.
+
+To use PitchShiftPA as asynchronous pitch shifter, set code::freq:: to a static value in the low audible range code::(20-100)::, set code::pitchRatio:: to code::1::, treat code::formatRatio:: as the code::pitchRatio::, increase code::grainPeriods:: and add some code::timeDispersion::.
+
+Examples:
+code::
+s.boot;
+
+//with a signal from a buffer
+b = Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01-44_1.aiff");
+(
+x.free;
+x = {
+	var in = PlayBuf.ar(1, b, BufRateScale.kr(b), loop: 1);
+	PitchShiftPA.ar(
+		in,
+		50, //instead of tracking pitch, this controls the granulation speed; this might need to be raised to minimize artifacts when shifting up by more than 5
+		1, //pitchRatio is not used and should be 1
+		MouseY.kr(0.5, 2), //formantRatio becomes actual pitch ratio
+		10, //minFreq may be lower if needed (this is the lowest value for the freq parameter)
+		20, //maxFormantRatio becomes maximum pitch ratio, may be raised if desired
+		4, //grainPeriods - more overlaps is desirable when using as asynchronous pitchshifter
+		6, //timeDispersion helps to minimize combing effect; could be also a large number, used as a granulation "effect"
+	) * -3.dbamp;
+}.play
+)
+x.free;
+
+//with live input - beware of feedback!
+(
+x.free;
+x = {
+	var in = SoundIn.ar(0);
+	PitchShiftPA.ar(
+		in,
+		50, //granulation speed
+		1, //not used and should be 1
+		MouseY.kr(0.1, 10), //formantRatio becomes actual pitch ratio
+		10, //minFreq
+		20, //maxFormantRatio becomes maximum pitch ratio
+		4, //grainPeriods - more overlaps is desirable
+		6, //timeDispersion helps to minimize combing effect
+	) * -3.dbamp;
+}.play
+)
+x.free;
+::
+
+
+EXAMPLES::
+
+code::
+//basic live example - beware of feedback!
+s.boot;
+(
+x = {
+	var in = SoundIn.ar(0);
+	PitchShiftPA.ar(
+		in,
+		Pitch.kr(in)[0], //pitch tracking - we take just the frequency
+		MouseX.kr(0.5, 2), //pitchRatio
+		MouseY.kr(0.5, 2), //formantRatio
+	)
+}.play
+)
+x.free;
+
+//use midiratio to enable better control (no pitch/formant shift when the cursor is in the middle of the screen)
+(
+x = {
+	var in = SoundIn.ar(0);
+	PitchShiftPA.ar(
+		in,
+		Pitch.kr(in)[0], //pitch tracking - we take just the frequency
+		MouseX.kr(-12, 12).midiratio, //pitchRatio
+		MouseY.kr(-12, 12).midiratio, //formantRatio
+	)
+}.play
+)
+x.free;
+
+//formant: nil version (uses slightly less memory)
+(
+x = {
+	var in = SoundIn.ar(0);
+	PitchShiftPA.ar(
+		in,
+		Pitch.kr(in)[0], //pitch tracking - we take just the frequency
+		MouseX.kr(-12, 12).midiratio, //pitchRatio
+		nil
+	)
+)
+x.free;
+
+//automatic pitchshifter, insipired by auto-tune algorithm
+s.boot;
+(
+x = {
+	var quantizedMidi, midiDiff, harmonize, confidence, inPitch, sig;
+	var in = SoundIn.ar(0); //live input
+	// var in = PlayBuf.ar(1, ~buffer, doneAction: 2); ~buffer playback
+
+	// pitch tracking
+	#inPitch, confidence = Pitch.kr(in); //pitch tracker included in SC
+	// #inPitch, confidence = Tartini.kr(in); //alternative if you have sc3-plugins
+
+	// "quantize" (round) pitch information
+	quantizedMidi = inPitch.cpsmidi.softRound(1, 0, 1); //quantize to semitones
+	// quantizedMidi = inPitch.cpsmidi.softRound(2, 0, 1); //quantize to whole tones
+	// quantizedMidi = inPitch.cpsmidi.softRound(4, 0, 1); //quantize to major thirds
+	quantizedMidi.poll(label: \quantizedMidiNote); //poll midi information
+
+	//get the difference
+	midiDiff = quantizedMidi - inPitch.cpsmidi;
+
+	//optionally harmonize
+	harmonize = [0].midiratio; //single
+	// harmonize = [0, 4].midiratio; //major thirds
+
+	sig = Mix(
+		PitchShiftPA.ar(
+			in,
+			inPitch, //pitch tracking - we take just the frequency
+			midiDiff.midiratio * harmonize, //pitchRatio
+			1, //formantRatio
+		)
+	);
+
+	//output
+	// [sig, in]; //listen to both signals
+	sig; //listen to tuned signal only
+}.play
+)
+x.free;
+
+//longer example with a gui
+(
+var synths, notes, buses, buffers;
+var window, guiElements, functions;
+var liveInbus = 0, outbus = 0; //config input and output
+
+buses = IdentityDictionary.new;
+notes = IdentityDictionary.new;
+buffers = IdentityDictionary.new;
+guiElements = IdentityDictionary.new;
+functions = IdentityDictionary.new;
+
+guiElements[\buttonBackgroundOff] = Color.gray(1, 0.6);
+guiElements[\buttonBackgroundOn] = Color.green(1, 0.1);
+
+s.waitForBoot({
+	1.wait; //in case things are not ready...
+	SynthDef(\monoPlayer, { arg buffer, loop=1, amp=1, outbus=0;
+		var sig;
+		sig = PlayBuf.ar(1, buffer,  BufRateScale.kr(buffer), loop: loop);
+		Out.ar(outbus, sig*amp);
+	}).add;
+	SynthDef(\monoRouter, { arg inbus=0, outbus=0, amp = 1;
+		var sig;
+		sig = In.ar(inbus, 1);
+		Out.ar(outbus, sig*amp);
+	}).add;
+	SynthDef(\monoStereoRouter, { arg inbus=0, outbus=0, amp = 1, pan = 0;
+		var sig;
+		sig = In.ar(inbus, 1);
+		Out.ar(outbus, Pan2.ar(sig, pan, amp));
+	}).add;
+	SynthDef(\pitch, { arg inbus = 0, freqOutbus = 0, hasFreqOutbus = 1;
+		var in, out, freq, hasFreq;
+		in = In.ar(inbus, 1);
+		#freq, hasFreq = Pitch.kr(in);
+		// freq.poll;
+		Out.kr(freqOutbus, freq);
+		Out.kr(hasFreqOutbus, hasFreq);
+	}).add;
+	SynthDef(\amp, { arg inbus = 0, ampBus = 1, att = 0.05, rel = 0.2;
+		var in, out, amp;
+		in = In.ar(inbus, 1);
+		amp = Amplitude.kr(in, att, rel);
+		Out.kr(ampBus, amp);
+	}).add;
+	//pitch shift only
+	SynthDef(\PitchShiftPA_light, {|inbus = 0, amp = 1, freq = 1, outbus = 0, pitchRatio = 1, minFreq = 30, grainsPeriod = 2|
+		var shifted;
+		var sig, out;
+		sig = In.ar(inbus, 1);
+		shifted = PitchShiftPA.ar(sig, freq, pitchRatio, nil, minFreq, nil, grainsPeriod);
+		Out.ar(outbus, shifted * amp)
+	}).add;
+	//pitch and formant shift
+	SynthDef(\PitchShiftPA, {|inbus = 0,  freq = 1, outbus = 0, pitchRatio = 1, formantRatio = 1, minFreq = 30, maxFormantRatio = 10, grainsPeriod = 2, amp = 1|
+		var shifted;
+		var sig, out;
+		sig = In.ar(inbus, 1);
+		shifted = PitchShiftPA.ar(sig, freq, pitchRatio, formantRatio, minFreq, maxFormantRatio, grainsPeriod);
+		Out.ar(outbus, shifted * amp)
+	}).add;
+	//with 'dry' signal fallback
+	SynthDef(\PitchShiftPA_fallback, {|inbus = 0,  freq = 1, outbus = 0, pitchRatio = 1, formantRatio = 1, minFreq = 30, maxFormantRatio = 10, grainsPeriod = 2, amp = 1, hasFreq = 1, xFadeTime = 0.1|
+		var shifted;
+		var sig, out;
+		sig = In.ar(inbus, 1);
+		freq = Gate.kr(freq, BinaryOpUGen('==',  hasFreq, 1)); //only pass frequencies when the tracker is confident
+		shifted = PitchShiftPA.ar(sig, freq, pitchRatio, formantRatio, minFreq, maxFormantRatio, grainsPeriod);
+		out = SelectX.ar(hasFreq.lag(xFadeTime), [sig, shifted]);
+		Out.ar(outbus, out * amp)
+	}).add;
+
+	//buses
+	buses[\audioIn] = Bus.audio(s, 1);
+	buses[\audioOut] = Bus.audio(s, 1);
+	buses[\freq] = Bus.control(s, 1);
+	buses[\hasFreq] = Bus.control(s, 1);
+	buses[\amp] = Bus.control(s, 1);
+
+	//tracker etc
+	notes[\freqNote] = Synth(\pitch, [\inbus, buses[\audioIn], \freqOutbus, buses[\freq], \hasFreqOutbus, buses[\hasFreq]], addAction: \addToHead);
+	notes[\ampNote] = Synth(\amp, [\inbus, buses[\audioIn], \ampBus, buses[\amp]], addAction: \addToHead);
+	notes[\monoStereoRouter] = Synth(\monoStereoRouter, [\inbus, buses[\audioOut], \outbus, outbus], addAction: \addToTail);
+
+	//functions
+	functions[\guiUpdater] = Routine.run({
+		loop{
+			guiElements[\freqKnob].value_(buses[\freq].getSynchronous);
+			guiElements[\hasFreqKnob].value_(buses[\hasFreq].getSynchronous);
+			guiElements[\ampKnob].value_(buses[\amp].getSynchronous.ampdb);
+			0.05.wait;
+		}
+	}, clock: AppClock);
+
+	functions[\loadFiles] = {|path|
+		var allFiles;
+		if(path.notNil, {
+			buffers[\array].do(_.free);
+			notes.keysValuesDo({|key, note| if(key.asString.beginsWith("array"), {note.free})}); //free previous notes
+			guiElements[\arrayButtons].do(_.remove);
+			guiElements[\arrayAmps].do({|thisKnob|
+				thisKnob.labelView.remove;
+				thisKnob.knobView.remove;
+				thisKnob.numberView.remove;
+			});
+			buffers[\array] = List.new;
+			guiElements[\arrayButtons] = List.new;
+			guiElements[\arrayAmps] = List.new;
+			notes.keysValuesDo({|key, value|
+				if(key.asString.includes("array"), {
+					value.free;
+				});
+			});
+			if(PathName(path).isFolder.not, {
+				allFiles = [path];
+			}, {
+				allFiles = ((path.withTrailingSlash ++ "*.wav").pathMatch ++ (path.withTrailingSlash ++ "*.aif*").pathMatch);
+			});
+			allFiles.collect({|thisPath, inc|
+				var thisBuffer, thisButton, thisKnob;
+				thisBuffer = Buffer.readChannel(s, thisPath, channels: [0]); //read only first channel
+				buffers[\array].add(thisBuffer);
+				thisKnob = EZKnob(window, 80@20, "amp (dB):", \db, layout: \horz).value_(0).action_({|knob| notes[(\array ++ inc).asSymbol].set(\amp, knob.value.dbamp)});
+				guiElements[\arrayAmps].add(thisKnob);
+				thisButton = Button().states_([[thisPath.basename, nil, guiElements[\buttonBackgroundOff]], [thisPath.basename, nil, guiElements[\buttonBackgroundOn]]]).action_({|butt|
+					if(butt.value.asBoolean, {
+						notes[(\array ++ inc).asSymbol] = Synth(\monoPlayer, [\buffer, thisBuffer, \outbus, buses[\audioIn]], target: notes[\ampNote], addAction: \addBefore);
+					}, {
+						notes[(\array ++ inc).asSymbol].free;
+					});
+				});
+				guiElements[\arrayButtons].add(thisButton);
+				guiElements[\playersView].layout.add(
+					HLayout(
+						thisButton.maxWidth_(300),
+						nil,
+						thisKnob.labelView,
+						thisKnob.knobView,
+						thisKnob.numberView.maxWidth_(40)
+					),
+				);
+			});
+		});
+	};
+
+
+	//GUI
+	window = Window.new("PitchShiftPA tests", 1200@760).front;
+	guiElements[\playersView] = View.new;
+	guiElements[\playersView].layout_(VLayout());
+	guiElements[\inputPlayerView] = View.new;
+	guiElements[\shiftersView] = View.new;
+	guiElements[\topView] = View.new;
+	window.layout_(
+		VLayout(
+			guiElements[\topView],
+			HLayout(
+				VLayout(
+					StaticText().string_("Sound sources:").font_(Font(size: 24)),
+					guiElements[\inputPlayerView],
+					guiElements[\playersView]
+				),
+				VLayout(
+					StaticText().string_("Processing:").font_(Font(size: 24)),
+					guiElements[\shiftersView]
+				);
+			),
+			nil //space at the bottom
+		)
+	);
+
+	guiElements[\freqKnob] = EZKnob(window, 80@20, "freq:", \freq, layout: \horz);
+	guiElements[\hasFreqKnob] = EZKnob(window, 80@20, "has freq:", layout: \horz);
+	guiElements[\ampKnob] = EZKnob(window, 80@20, "amp (dB):", \db, layout: \horz);
+
+	guiElements[\topView].layout_(
+		VLayout(
+			StaticText().string_("Tester for PitchShiftPA using live input or sound files. The signal should be monophonic, i.e. consisting of a single melodic voice.\n\nUse buttons below to load a file or a whole directory. Please note, for stereo or multichannel files, only the first channel will be read.\nButtons on the right turn processing on and off. Be advised, that the accuracy of pitch tracking of the input is crucial for good results."),
+			HLayout(
+				Button().states_([["open a sound file"]]).action_({
+					Dialog.openPanel({|path|
+						functions[\loadFiles].value(path)
+					})
+				}),
+				Button().states_([["open all sound files in a directory"]]).action_({
+					FileDialog({|paths|
+						functions[\loadFiles].value(paths.first)
+					}, nil, 2, 0);
+				}),
+				nil,
+			)
+
+		)
+	);
+
+	//input section
+
+	guiElements[\inputAmpKnob] = EZKnob(window, 80@20, "amp (dB):", \db, layout: \horz)
+	.value_(0)
+	.action_({|knob| notes[\liveInput].set(\amp, knob.value.dbamp)});
+
+	guiElements[\inputPlayerView].layout_(
+		VLayout(
+			StaticText().string_("parameters of the sound (updated live):").minWidth_(200),
+			HLayout(
+				guiElements[\freqKnob].labelView,
+				guiElements[\freqKnob].knobView,
+				guiElements[\freqKnob].numberView.maxWidth_(60),
+				guiElements[\hasFreqKnob].labelView,
+				guiElements[\hasFreqKnob].knobView,
+				guiElements[\hasFreqKnob].numberView.maxWidth_(40),
+				guiElements[\ampKnob].labelView,
+				guiElements[\ampKnob].knobView,
+				guiElements[\ampKnob].numberView.maxWidth_(60)
+			),
+			nil,
+			HLayout(
+				Button().states_([["Live input " ++ liveInbus.asString ++ " off", nil, guiElements[\buttonBackgroundOff]], ["Live input " ++ liveInbus.asString ++ " on", nil, guiElements[\buttonBackgroundOn]]]).action_({|butt|
+					if(butt.value.asBoolean, {
+						notes[\liveInput] = Synth(
+							\monoRouter,
+							[\inbus, s.options.numOutputBusChannels + liveInbus, \outbus, buses[\audioIn]],
+							target: notes[\ampNote],
+							addAction: \addBefore
+						);
+					}, {
+						notes[\liveInput].free;
+					});
+				}),
+				nil,
+				guiElements[\inputAmpKnob].labelView,
+				guiElements[\inputAmpKnob].knobView,
+				guiElements[\inputAmpKnob].numberView.maxWidth_(40)
+			),
+		)
+	);
+
+	//shifter section
+	guiElements[\PitchShiftPA_lightAmp] = EZKnob(window, 60@20, "amp (dB):", \db, layout: \horz)
+	.value_(0)
+	.action_({|knob| notes[\PitchShiftPA_light].set(\amp, knob.value.dbamp)});
+	guiElements[\PitchShiftPA_lightShift] = EZKnob(window, 60@20, "pitch ratio (semitones):", ControlSpec(-24, 24, default: 0), layout: \horz)
+	.value_(0)
+	.action_({|knob|  notes[\PitchShiftPA_light].set(\pitchRatio, knob.value.midiratio)});
+
+	guiElements[\PitchShiftPAAmp] = EZKnob(window, 60@20, "amp (dB):", \db, layout: \horz)
+	.value_(0)
+	.action_({|knob| notes[\PitchShiftPA].set(\amp, knob.value.dbamp)});
+	guiElements[\PitchShiftPAShift] = EZKnob(window, 60@20, "pitch ratio (semitones):", ControlSpec(-24, 24, default: 0), layout: \horz)
+	.value_(0)
+	.action_({|knob| notes[\PitchShiftPA].set(\pitchRatio, knob.value.midiratio)});
+	guiElements[\PitchShiftPAFormant] = EZKnob(window, 60@20, "formant ratio (semitones):", ControlSpec(-24, 24, default: 0), layout: \horz)
+	.value_(0)
+	.action_({|knob| notes[\PitchShiftPA].set(\formantRatio, knob.value.midiratio)});
+
+	guiElements[\PitchShiftPA_fallbackAmp] = EZKnob(window, 60@20, "amp (dB):", \db, layout: \horz)
+	.value_(0)
+	.action_({|knob| notes[\PitchShiftPA_fallback].set(\amp, knob.value.dbamp)});
+	guiElements[\PitchShiftPA_fallbackShift] = EZKnob(window, 60@20, "pitch ratio (semitones):", ControlSpec(-24, 24, default: 0), layout: \horz)
+	.value_(0)
+	.action_({|knob|  notes[\PitchShiftPA_fallback].set(\pitchRatio, knob.value.midiratio)});
+	guiElements[\PitchShiftPA_fallbackFormant] = EZKnob(window, 60@20, "formant ratio (semitones):", ControlSpec(-24, 24, default: 0), layout: \horz)
+	.value_(0)
+	.action_({|knob|  notes[\PitchShiftPA_fallback].set(\formantRatio, knob.value.midiratio)});
+
+	guiElements[\shiftersView].layout_(
+		VLayout(
+			Button().states_([["PitchShiftPA_light off", nil, guiElements[\buttonBackgroundOff]], ["PSGPitchShiftPA_light on", nil, guiElements[\buttonBackgroundOn]]]).action_({|butt|
+				if(butt.value.asBoolean, {
+					notes[\PitchShiftPA_light] = Synth(
+						\PitchShiftPA_light,
+						[\inbus, buses[\audioIn], \freq, buses[\freq].asMap, \outbus, buses[\audioOut]],
+						target: notes[\freqNote],
+						addAction: \addAfter
+					);
+				}, {
+					notes[\PitchShiftPA_light].free;
+				});
+			}),
+			HLayout(
+				guiElements[\PitchShiftPA_lightAmp].labelView,
+				guiElements[\PitchShiftPA_lightAmp].knobView,
+				guiElements[\PitchShiftPA_lightAmp].numberView.maxWidth_(50),
+				guiElements[\PitchShiftPA_lightShift].labelView,
+				guiElements[\PitchShiftPA_lightShift].knobView,
+				guiElements[\PitchShiftPA_lightShift].numberView.maxWidth_(50),
+				nil,
+			),
+			Button().states_([["\PitchShiftPA off", nil,guiElements[\buttonBackgroundOff]], ["PitchShiftPA on", nil, guiElements[\buttonBackgroundOn]]]).action_({|butt|
+				if(butt.value.asBoolean, {
+					notes[\PitchShiftPA] = Synth(
+						\PitchShiftPA,
+						[\inbus, buses[\audioIn], \freq, buses[\freq].asMap, \outbus, buses[\audioOut]],
+						target: notes[\freqNote],
+						addAction: \addAfter
+					);
+				}, {
+					notes[\PitchShiftPA].free;
+				});
+			}),
+			HLayout(
+				guiElements[\PitchShiftPAAmp].labelView,
+				guiElements[\PitchShiftPAAmp].knobView,
+				guiElements[\PitchShiftPAAmp].numberView.maxWidth_(50),
+				guiElements[\PitchShiftPAShift].labelView,
+				guiElements[\PitchShiftPAShift].knobView,
+				guiElements[\PitchShiftPAShift].numberView.maxWidth_(50),
+				guiElements[\PitchShiftPAFormant].labelView,
+				guiElements[\PitchShiftPAFormant].knobView,
+				guiElements[\PitchShiftPAFormant].numberView.maxWidth_(50),
+				nil,
+			),
+			Button().states_([["PitchShiftPA with 'dry' fallback off", nil, guiElements[\buttonBackgroundOff]], ["PitchShiftPA with 'dry' fallback on", nil, guiElements[\buttonBackgroundOn]]]).action_({|butt|
+				if(butt.value.asBoolean, {
+					notes[\PitchShiftPA_fallback] = Synth(
+						\PitchShiftPA_fallback,
+						[\inbus, buses[\audioIn], \freq, buses[\freq].asMap, \hasFreq, buses[\hasFreq].asMap, \outbus, buses[\audioOut]],
+						target: notes[\freqNote],
+						addAction: \addAfter
+					);
+				}, {
+					notes[\PitchShiftPA_fallback].free;
+				});
+			}),
+			HLayout(
+				guiElements[\PitchShiftPA_fallbackAmp].labelView,
+				guiElements[\PitchShiftPA_fallbackAmp].knobView,
+				guiElements[\PitchShiftPA_fallbackAmp].numberView.maxWidth_(50),
+				guiElements[\PitchShiftPA_fallbackShift].labelView,
+				guiElements[\PitchShiftPA_fallbackShift].knobView,
+				guiElements[\PitchShiftPA_fallbackShift].numberView.maxWidth_(50),
+				guiElements[\PitchShiftPA_fallbackFormant].labelView,
+				guiElements[\PitchShiftPA_fallbackFormant].knobView,
+				guiElements[\PitchShiftPA_fallbackFormant].numberView.maxWidth_(50),
+				nil,
+			),
+			nil,
+		)
+	);
+
+	window.onClose_({
+		functions[\guiUpdater].stop;
+		buses.asArray.flat.do(_.free);
+		notes.asArray.flat.do(_.free);
+		buffers.asArray.flat.do(_.free);
+	});
+});
+)
+::
