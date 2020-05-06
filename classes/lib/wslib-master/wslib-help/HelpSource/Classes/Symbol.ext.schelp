@@ -1,0 +1,6 @@
+INSTANCEMETHODS::
+
+subsection:: Extensions by wslib
+
+method:: asNote
+returns:: Returns a link::Classes/Note:: whose MIDI pitch matches the given note name

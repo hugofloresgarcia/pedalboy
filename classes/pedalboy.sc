@@ -65,7 +65,8 @@ PedalBoy {
 		this.out = out;
 		this.group = group;
 		this.gui_objs = List.new();
-		this.scope_bus = Bus.audio(this.server, 1);
+
+		this.scope_bus = this.scope_bus ? Bus.audio(this.server, 1);
 
 		if(server.isNil.not, {
 			NodeWatcher.newFrom(server);
@@ -80,7 +81,7 @@ PedalBoy {
 	}
 
 	is_bypassed{
-		^this.synth_node.isRunning.not;
+		^this.node.isRunning.not;
 	}
 
 	synth_param_init{|mappable_arg_dict, ugen_func, name, addaction|
@@ -174,6 +175,10 @@ PedalBoy {
 
 	}
 
+	unassign_knob{|argument|
+		this.mididef_dict.at(argument).free;
+	}
+
 	node{
 		^this.scope_node;
 	}
@@ -181,25 +186,34 @@ PedalBoy {
 
 	on{
 		//only create a new node on the server if there isn't already one
-		if(this.synth_node.isPlaying, {
+		if(this.node.isPlaying, {
 			this.synth_node.run(true);
 			this.scope_node.run(true); // creates the scope synthdef
+			"resuming synth ".post; this.synthdef.postln;
 		}, {
+			"creating node ".post; this.synthdef.postln;
 			this.synth_node = this.synth.play(this.group, this.arg_dict.asPairs, this.addaction);
-			this.synth_node.register;
 			this.scope();
+			this.node.register(true);
 		});
 	}
 
 	bypass{
-		this.synth_node.run(false);
-		this.scope_node.run(false);
+		Routine({
+			this.server.sync;
+			// if(this.node.isPlaying, {
+				// "bypassing..".post; this.synthdef.postln;
+
+			this.synth_node.run(false);
+			this.scope_node.run(false);
+		}).play;
 	}
 
 	free{
 		this.synth_node.free;
 		this.scope_node.free;
 	}
+
 	get_bus{|argument|
 		//return the control bus associated with an argument
 		^this.mappable_args[argument].bus;
@@ -326,9 +340,6 @@ PedalBoy {
 		}).play(this.synth_node, [\in, out, \out, this.scope_bus.index], \addAfter);
 	}
 
-
-
-
 	add_gui_controls{
 		var b = this.master_bounds;
 		var a = this.view.bounds.extent;
@@ -368,8 +379,9 @@ PedalBoy {
 					numStringColor: Color.rand(0.05, 0.15),
 					numNormalColor: Color.rand(0.05, 0.15)
 				)
-				.font_(Font("Helvetica", 9))
-				.view.setContextMenuActions(
+				.font_(Font("Helvetica", 9));
+				);
+				this.knobs.at(m_arg.symbol).view.setContextMenuActions(
 					MenuAction("assign knob", {
 						EZNumber.new(
 							parent: nil,
@@ -381,7 +393,8 @@ PedalBoy {
 							initAction: false)
 						.alwaysOnTop_(true);
 					}),
-				))
+					MenuAction("unassign knob", {this.unassign_knob(m_arg.symbol)}),
+				);
 			});
 			// });
 		});
@@ -409,8 +422,15 @@ PedalBoy {
 				0, {this.on; button.background_(Color.new(0.9, 0.5, 0.5))},
 				1, {this.bypass; button.background_(Color.new(0.5, 0.9, 0.5))});
 
-		})
-		.valueAction_(this.is_bypassed.asInteger);
+		});
+		this.node.isPlaying.if({
+			Routine({
+				this.server.sync;
+				"checking node ".post; this.synthdef; " for bypass".postln;
+				"is bypassed: ".post; this.is_bypassed.postln;
+				this.bypass_button.valueAction_(this.is_bypassed.asInteger);
+			}).play(AppClock);
+		});
 
 		// this.view.layout.add(bypass_button);
 	}
@@ -418,29 +438,32 @@ PedalBoy {
 
 	*make_dir{
 		this.all = Dictionary.with(*[
-			\input_buffer -> PedalBoy.input_buffer(),
-			\output_buffer -> PedalBoy.output_buffer(),
-			\panner -> PedalBoy.panner(),
-			\grain_pitch_shifter -> PedalBoy.grain_pitch_shifter(),
-			\pitch_follower -> PedalBoy.pitch_follower(),
-			\pitch_shift -> PedalBoy.pitch_shift(),
-			\saw_synth -> PedalBoy.saw_synth(),
-			\tri_synth -> PedalBoy.tri_synth(),
-			\sine_synth -> PedalBoy.tri_synth(),
-			\fm_synth -> PedalBoy.fm_synth(),
-			\delay -> PedalBoy.delay(),
-			\compressor -> PedalBoy.compressor(),
-			\freeverb -> PedalBoy.freeverb(),
-			\env_filter -> PedalBoy.env_filter(),
-			\vibrato -> PedalBoy.vibrato(),
-			\shibrato -> PedalBoy.shibrato(),
-			\vinyl_boy -> PedalBoy.vinyl_boy(),
-			// \chorus -> PedalBoy.chorus(),
-			\env_filter -> PedalBoy.env_filter(),
-			\wah -> PedalBoy.wah(),
-			\looper_boy -> LooperBoy.looper(),
-			\bitcrusher -> PedalBoy.bitcrusher(),
-			\g_hex -> PedalBoy.g_hex(),
+			\input_buffer -> { PedalBoy.input_buffer()},
+			\output_buffer -> { PedalBoy.output_buffer()},
+			\panner -> { PedalBoy.panner()},
+			\grain_pitch_shifter -> { PedalBoy.grain_pitch_shifter()},
+			\pitch_follower -> { PedalBoy.pitch_follower()},
+			\pitch_shift -> { PedalBoy.pitch_shift()},
+			\saw_synth -> { PedalBoy.saw_synth()},
+			\tri_synth -> { PedalBoy.tri_synth()},
+			\sine_synth -> { PedalBoy.tri_synth()},
+			\fm_synth -> { PedalBoy.fm_synth()},
+			\delay -> { PedalBoy.delay()},
+			\compressor -> { PedalBoy.compressor()},
+			\freeverb -> { PedalBoy.freeverb()},
+			\env_filter -> { PedalBoy.env_filter()},
+			\vibrato -> { PedalBoy.vibrato()},
+			\shibrato -> { PedalBoy.shibrato()},
+			\vinyl_boy -> { PedalBoy.vinyl_boy()},
+			\looper_boy -> { LooperBoy.looper()},
+			\grain_looper -> { GrainLooper.looper()},
+			// \chorus -> { PedalBoy.chorus()},
+			\env_filter -> { PedalBoy.env_filter()},
+			\wah -> { PedalBoy.wah()},
+			\bitcrusher -> { PedalBoy.bitcrusher()},
+			\g_hex -> { PedalBoy.g_hex()},
+			\futh -> { PedalBoy.futh()},
+			\soft_fuzz -> { PedalBoy.soft_fuzz()},
 		]);
 	}
 
@@ -448,8 +471,6 @@ PedalBoy {
 		this.all.keysValuesDo({
 			arg key, value;
 			// key.postln;
-
-
 		});
 		^this.all
 	}

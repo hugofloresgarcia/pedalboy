@@ -1,0 +1,115 @@
+CLASSMETHODS::
+
+subsection:: Extensions by wslib
+
+method:: makeNoteName
+Creates a String representing the name of a note.
+
+argument:: name
+Name or MIDI pitch of the note to construct.
+
+argument:: alt
+Number of half-steps (semitones) to adjust the note by.  Equivalent to 100 cents.
+If this exceeds the code::maxAlt:: value, it will be cropped to that, and the excess
+will be converted into cents which can be obtained from the resulting string via the
+unique code::-cents:: method.
+
+argument:: octave
+The octave of the note.  code::3:: corresponds to the octave starting at middle C.
+
+argument:: cents
+Number of cents, i.e. one-hundredths of a half-step (semitone) to adjust the note by.
+
+argument:: maxAlt
+Maximum number of accidentals to include in the string.  Any excess will be translated
+into cents which can be obtained from the resulting string via the unique code::-cents::
+method.
+
+Defaults to 2.
+
+discussion::
+code::
+a = String.makeNoteName(name: $A); // "A3"
+a.class; // -> String
+a.alt; // -> 0
+::
+
+private:: notesDict
+
+method:: notesDict
+returns::
+An link::Classes/IdentityDictionary:: mapping characters representing
+note names to their offsets within the MIDI octave.  For example,
+code::$C:: maps to code::0::, and code::$D:: maps to code::2::.
+Accidentals are not supported.
+
+INSTANCEMETHODS::
+
+subsection:: Extensions by wslib
+
+method:: notesDict
+returns:: Same as link::Classes/String#*notesDict::.
+
+private:: notesDict
+
+method:: namemidi
+Converts a note name to a MIDI note pitch.
+
+argument:: cents
+Number of cents to adjust
+
+returns:: link::Classes/Float:: corresponding to a MIDI note pitch
+discussion::
+
+code::
+"G2".namemidi; // -> 55
+"Bbb4".namemidi(7); // -> 81.07
+::
+
+method:: getAlt
+
+returns::
+-1 / 1 / 2 if the String contains code::b:: / code::#:: / code::x:: respectively, or 0 otherwise.
+
+discussion::
+Memoizes the result.
+
+code::
+"G2".namemidi; // -> 55
+"Bbb4".namemidi(7); // -> 81.07
+::
+
+method:: getOctave
+returns:: link::Classes/Integer:: corresponding to the numerical component of the note.
+
+discussion::
+Does not take into account accidentals shifting the pitch into a different octave.
+This is probably a bug!
+
+Memoizes the result.
+
+code::
+"C3".getOctave; // -> 3
+"Cb3".getOctave; // -> 3
+"B#4".getOctave; // -> 4
+::
+
+method:: getNote
+returns:: uppercase link::Classes/Char:: corresponding to first character of the string
+
+discussion::
+code::
+"F#2".getNote.class; // -> Char
+"F#2".getNote // -> $F
+"f#2".getNote // -> $F
+::
+
+method:: asNote
+
+returns:: link::Classes/Note:: whose pitch is described by the given string
+
+discussion::
+code::
+"G#2".asNote.class; // -> Note
+"A3".asNote.freq; // -> 440
+::

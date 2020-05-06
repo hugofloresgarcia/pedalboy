@@ -1,0 +1,27 @@
+INSTANCEMETHODS::
+
+subsection:: Extensions by wslib
+
+method:: asNote
+returns:: link::Classes/Note:: whose MIDI pitch matches the given number
+
+method:: midiname
+Convert a MIDI note number to a note name such as code::Bb3::.
+
+argument:: sign
+
+link::classes/String::, link::classes/Symbol::, or link::classes/Char:: containing code::#:: or code::b::.
+Forces notes with accidentals to have the given accidental.
+If not specified, or code::n::, chooses the most common alterations (F#, C#, G#, Bb, Eb).
+returns:: link::Classes/String:: containing the note name, with unique code::-alt:: method
+returning an link::Classes/Integer:: with the same meaning as link::Classes/Note#-getalt::,
+and code::-cents:: method returning the number of cents.
+
+discussion::
+code::
+[69, 70, 70.07].collect { |i| n = i.midiname; [n.class.asString, n, n.alt, n.cents] }
+// -> [ [ String, A3, 0, 0 ], [ String, Bb3, -1, 0 ], [ String, Bb3, -1, 7 ] ]
+69.midiname($#) // -> A3
+70.midiname     // -> Bb3
+70.midiname($#) // -> A#3
+::

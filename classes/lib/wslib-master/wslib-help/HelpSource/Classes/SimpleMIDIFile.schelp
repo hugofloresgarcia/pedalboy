@@ -1,0 +1,863 @@
+TITLE:: SimpleMIDIFile
+summary:: simple MIDI file implementation
+categories:: Undocumented classes
+related:: Classes/MIDIIn, Classes/MIDIOut, Guides/MIDI
+DESCRIPTION::
+a MIDI file implementation capable of reading and writing all types of MIDI data (except sysex messages).
+
+First code examples:
+
+code::
+(
+m = SimpleMIDIFile( "~/Desktop/midifiletest.mid" ); // create empty file
+m.init1( 3, 120, "4/4" );	// init for type 1 (multitrack); 3 tracks, 120bpm, 4/4 measures
+m.timeMode = \seconds;  // change from default to something useful
+
+((0,(1/8)..5)).do({ |starttime| // add random notes
+	m.addNote( 36 + 50.rand, 32 + 96.rand, starttime, [0.1,0.05].choose, 127, track: 1 )
+});
+
+((0,(1/4)..5)).do({ |starttime| // add random notes to next track
+	m.addNote( 36 + 50.rand, 64 + 64.rand, starttime, [0.1,0.025].choose, 127,
+		channel: 1,  // note: = midi channel 2
+		track: 2 )
+	});
+)
+
+m.midiEvents.dopostln; // all midi events
+m.metaEvents.dopostln; // notice the incorrect 'endOfTrack' events for track 1 & 2;
+
+m.adjustEndOfTrack;
+m.metaEvents.dopostln; // try again
+
+m.tempoMap; // get the tempo map ( [[ startTime, bpm ], [ etc.. ]] )
+m.timeSignatures; // get the time signatures ( ( [[ startTime, a/b ], [ etc.. ]] )
+
+m.p.play; // convert to Pattern and play
+m.write; // now play the file in Quicktime, or open with another app
+m.plot;  // uses ScaledUserView::
+::
+
+SimpleMIDIFile also supports Event Patterns (see link::Classes/Pattern:: and link::Classes/Pbind::). You can use the code::p:: method to convert a code::SimpleMIDIFile:: into a playable pattern (a link::Classes/Ppar:: to be exact).
+
+code::
+// download a Bach midi file:
+"curl http://www.bachcentral.com/BachCentral/ORGAN/toccata1.mid -o ~/Desktop/toccata1.mid".unixCmd;
+
+// read it
+m = SimpleMIDIFile.read( "~/Desktop/toccata1.mid" );
+
+// play it (cmd-. to stop)
+m.p.play; // takes a few seconds to start because this midifile starts with a rest
+
+
+// play it with another instrument
+(
+SynthDef( "organ", { |freq = 440, sustain = 1, amp = 0.1|
+		var sig;
+		sig = LFPar.ar( freq * [1,2,3,5], 0, amp/[2,4,5,7] );
+		Out.ar( 0, Env([0,1,1,0], [0.025,sustain,0.025]).kr(2) * sig.dup )
+}).add;
+);
+
+x = m.p( \organ ).play;
+x.stop;
+::
+
+Via the fromPattern method patterns can be turned into midi files as well:
+
+code::
+(
+p = Pbind(
+	\dur, Prand( [0.25,0.5,1], inf ),
+	\freq, Pwhite( 440, 880 ),
+	\db, Pwhite( -40,-10 ),
+	\legato, Pwhite( 0.25, 4 ) );
+
+m = SimpleMIDIFile( "~/Desktop/testPat.mid" );
+m.init1( 2, 120, "4/4" );
+m.fromPattern( p );
+)
+
+m.plot;
+
+m.p.play; // note numbers are not rounded
+p.play; // compare
+
+m.write; // when writing to file note numbers are rounded (MIDI file format doesn't allow floats)
+::
+
+CLASSMETHODS::
+
+METHOD:: new
+create a new, possibly empty instance.
+argument:: pathName
+
+METHOD:: fromPattern
+create a new instance from a pattern.
+argument:: pattern
+argument:: maxEvents
+argument:: maxAmp
+argument:: startTime
+argument:: inTracks
+argument:: inTempo
+argument:: timeSignature
+
+METHOD:: read
+read an existing MIDI file from disk.
+argument:: pathName
+
+
+METHOD:: tempoScale
+global tempo scale
+
+INSTANCEMETHODS::
+
+subsection::core methods
+
+METHOD:: pathName
+file path of the midi file. defaults to code::"~/scwork/midi.mid"::.
+
+METHOD:: midiEvents
+an array containing all MIDI events as arrays.
+Format:
+
+code::[ trackNumber, absTime, type, channel, val1, val2 ]::
+DEFINITIONLIST::
+##tracknumber
+||	the number of the track in which this event sits. For format type 0 files this is always 0, for type 1 files track 0 is reserved for meta events, so midiEvent tracks start counting at 1.
+## absTime
+|| the absolute start-time of the event. If timeMode == \ticks the absTime is in ticks (tempo dependant), if timeMode == \seconds it is in seconds (not depending on tempo). In the original midi file format all times are relative to the previous event on a track, but for convenience SimpleMIDIFile converts them to absolute times when reading in.
+## type
+|| 	usually a Symbol. Can be one of code::[\noteOff, \noteOn, \polyTouch, \cc, \program, \afterTouch, \pitchBend]::
+## channel
+	midi channel on which the event plays. Starts at 0 (= midi channel 1)
+## val1
+## val2
+|| values for the event. These are usually between 0-127. The contents of these vary per event type:
+TABLE::
+	## type || val1 || val2
+##noteOn || note number	 || velocity
+##noteOff || note number	 || velocity
+##polyTouch	 || note number	 || amount
+##cc	 || control number	 || amount
+##program || program number	 || (no val2)
+##afterTouch || amount || (no val2)
+##pitchBend	 || depends on pitchBendMode  ||
+::
+::
+
+METHOD:: metaEvents
+an array containing all META events as arrays. Format:
+
+code::[ trackNumber, absTime, type, [values] / value / string ]::
+
+code::absTime:: represents the abslute time at which the event takes place. In the Standard MIDI file
+format time values are always relative to the previous event. For convenience reasons the
+SimpleMIDIFile class converts these to absolute times when reading a file.
+The format of last item in the array above depends on the type of the event:
+
+types of which the last item is a string
+list::
+## code::\text::
+## code::\copyright::
+## code::\trackName::
+## code::\instName::
+## code::\lyrics::
+## code::\marker::
+## code::\cuePoint::
+::
+
+types of which the last item is a value
+list::
+## code::\sequenceNumber::
+## code::\tempo:: -> tempo in beats per minute
+::
+
+types of which the last item is an array of values
+list::
+## code::\timeSignature::
+## code::\keySignature::
+## code::\sequencerSpecific::
+## code::\midiChannelPrefix::
+::
+types of which the last item something else
+list::
+## code::\smpteOffset:: -> a SMPTE
+## code::\endOfTrack:: -> code::nil::
+::
+
+there can be unknown types of meta events. They have status byte number instead of
+a symbol in the 'type' slot of the array
+
+
+
+METHOD:: tempo
+a global tempo indicator in bpm. code::tempo:: always indicates the first tempo found, ignoring other tempo events in code::metaEvents::. The tempo mapping functionality uses the tempo events instead of this value. Setting the tempo with code::tempo_:: does not add or change tempo events ( a MIDI file can but does not need to contain a tempo event ). Use code::getTempo:: to get tempo, if existing, from code::metaEvents::.
+
+argument:: newTempo
+the new tempo
+
+
+
+METHOD:: timeMode
+either code::'ticks':: or code::'seconds'::, defaults to code::'ticks'::.
+This affects all time information contained in the midiEvents and metaEvents. Whenever the timeMode is switched all time data will be converted.
+
+definitionlist::
+## ticks
+|| standard MIDI file format for time data. The duration of one tick depends on the division and tempo at that specific point.
+## seconds
+|| absolute seconds, not influenced by tempo or division
+::
+
+argument:: newTimeMode
+the time mode
+argument:: convert
+flag indicating if converting data between time modes
+
+METHOD:: division
+number of 'ticks' per quarter note. This should usually be 1024. Change it only when you experience problems with specific sequencer software (there seem to be some which use different divisions)
+
+
+
+METHOD:: format
+can be 0, 1 or 2 (single, multi or pattern oriented)
+
+definitionlist::
+## 0
+|| typically all data in first track (0)
+## 1
+|| typically have all global metaData in first track (0) and all midi data in following tracks (1..). A trackName metaEvent in track 0 is usually interpreted as the song name
+## 2
+|| not very common. Works the same as format 1, but is meant for separate patterns in one file, contained in sequences (tracks)
+::
+
+Empty SimpleMIDIFiles need to be inited as format 0 or 1 first, using code::init0:: and code::init1:: methods.
+
+
+METHOD:: tracks
+number of tracks used. Can be fetched from midiEvents using code::adjustTracks::.
+
+
+
+METHOD:: pitchBendMode
+one of code::int8', 'int16', 'float'::. The default is 'int8'.
+
+
+
+
+definitionlist::
+## int8
+|| pitchbend stored as array of 2 int8 values (0-127), as stored in the midifile
+## int16
+|| pitchbend stored as single int16 value (0-16383)
+## float
+|| pitchbend stored as floating point values (-1.0 - 1.0)
+::
+
+argument:: to
+argument:: convert
+Flag indicating if existing values should be converted.
+
+
+
+subsection::init
+
+METHOD:: init0
+init as type 0 file
+argument:: inTempo
+argument:: timeSignature
+
+METHOD:: init1
+init as type 1 file. Minimum tracks are code::2::; first track contains metaData.
+
+argument:: inTracks
+argument:: inTempo
+argument:: timeSignature
+
+
+subsection::read/write
+
+METHOD:: read
+read MIDI file from disk.
+
+
+METHOD:: write
+write MIDI file to disk.
+argument:: newFileName
+the filename
+
+METHOD:: writeFile
+argument:: theFile
+
+METHOD:: checkWrite
+argument:: newFileName
+argument:: overwrite
+argument:: ask
+
+
+
+subsection::pattern support
+
+METHOD:: p
+argument:: inst
+argument:: amp
+argument:: useTempo
+
+
+METHOD:: fromPattern
+fill with events from a Pattern
+argument:: pattern
+argument:: maxEvents
+argument:: maxAmp
+argument:: startTime
+
+METHOD:: generatePatternSeqs
+returns sequenceable code::[note, dur]:: data in an array.
+
+subsection::correction
+
+METHOD:: adjustTracks
+adjust number of tracks according to midi data
+
+METHOD:: adjustEndOfTrack
+argument:: track
+argument:: wait
+
+METHOD:: correctTempoEvents
+argument:: removeDuplicates
+argument:: removeDoubles
+
+METHOD:: sortMIDIEvents
+sort events on time and track
+
+METHOD:: sortMetaEvents
+
+METHOD:: getTempo
+
+subsection::conversion / processing
+
+METHOD:: convertNoteOns
+argument:: noteOffVelo
+
+METHOD:: convertNoteOffs
+
+METHOD:: shiftTime
+argument:: deltaTime
+
+subsection::selection
+
+METHOD:: midiTrackEvents
+argument:: trackNumber
+
+METHOD:: midiChannelEvents
+argument:: channel
+argument:: track
+
+METHOD:: midiTrackTypeEvents
+argument:: track
+argument:: type
+argument:: channel
+
+METHOD:: midiTypeEvents
+argument::  ... args
+
+METHOD:: noteEvents
+argument:: channel
+argument:: track
+
+METHOD:: realNoteOnEvents
+argument:: channel
+argument:: track
+
+
+METHOD:: noteOffEvents
+argument:: channel
+argument:: track
+
+METHOD:: firstNoteOnTrack
+argument:: track
+
+METHOD:: pitchBendEvents
+argument:: channel
+argument:: track
+
+METHOD:: afterTouchEvents
+argument:: channel
+argument:: track
+
+
+METHOD:: controllerEvents
+argument:: cc
+argument:: channel
+argument:: track
+
+
+METHOD:: modulationEvents
+argument:: channel
+argument:: track
+
+METHOD:: breathEvents
+argument:: channel
+argument:: track
+
+METHOD:: volumeEvents
+argument:: channel
+argument:: track
+
+METHOD:: panEvents
+argument:: channel
+argument:: track
+
+METHOD:: expressionEvents
+argument:: channel
+argument:: track
+
+METHOD:: damperEvents
+argument:: channel
+argument:: track
+
+METHOD:: metaTrackEvents
+argument:: trackNumber
+
+METHOD:: timeSignatureEvents
+
+METHOD:: keySignatureEvents
+
+METHOD:: smpteOffsetEvents
+
+METHOD:: tempoEvents
+
+METHOD:: testEndOfTrack
+argument:: track
+
+subsection::converted selection
+
+to different array formats or Classes
+
+
+METHOD:: noteSustainEvents
+argument:: channel
+argument:: track
+returns events in the form:
+code::
+[track, absTime, \noteOn, channel, note, velo, dur, upVelo]
+::
+
+METHOD:: midiDeltaEvents
+argument:: track
+argument:: type
+argument:: channel
+
+METHOD:: midiDeltaCCEvents
+argument:: track
+argument:: cc
+argument:: channel
+
+METHOD:: timeSignatures
+
+METHOD:: keySignatures
+
+METHOD:: trackNames
+METHOD:: instNames
+METHOD:: midiTracks
+METHOD:: metaTracks
+METHOD:: asDicts
+METHOD:: asNoteDicts
+argument:: channel
+argument:: track
+
+METHOD:: envFromType
+argument:: track
+argument:: type
+argument:: channel
+
+METHOD:: envFromCC
+argument:: track
+argument:: cc
+argument:: channel
+
+
+subsection::extraction of single values
+
+METHOD:: trackName
+argument:: track
+
+METHOD:: instName
+argument:: track
+
+METHOD:: length
+METHOD:: smpteOffset
+
+
+
+subsection::timing methods (converted selection, extraction)
+
+METHOD:: tempi
+
+METHOD:: tempoMap
+
+METHOD:: tempoEnv
+
+
+
+METHOD:: beatAtTime
+argument:: time
+
+METHOD:: timeAtBeat
+argument:: beat
+
+METHOD:: tempoAtTime
+argument:: time
+
+METHOD:: timeSignatureAsArray
+
+METHOD:: measureAtBeat
+argument:: beat
+argument:: measureFormat
+
+METHOD:: measureAtTime
+argument:: time
+argument:: measureFormat
+
+METHOD:: beatAtMeasure
+argument:: measure
+argument:: measureFormat
+
+METHOD:: timeAtMeasure
+argument:: measure
+argument:: measureFormat
+
+
+
+subsection::addition of events
+
+METHOD:: addMIDIEvent
+argument:: event
+array, for format, see above.
+argument:: sort
+
+METHOD:: addAllMIDIEvents
+argument:: events
+array of arrays, for their format, see above.
+argument:: sort
+
+METHOD:: addMIDIEventToTrack
+argument:: event
+argument:: track
+argument:: sort
+
+
+METHOD:: addAllMIDIEventsToTrack
+argument:: events
+argument:: track
+argument:: sort
+
+
+METHOD:: addMIDITypeEvent
+argument:: type
+argument:: channel
+argument:: args
+argument:: absTime
+argument:: track
+argument:: sort
+
+
+METHOD:: addAllMIDITypeEvents
+argument:: type
+argument:: channel
+argument:: args
+argument:: absTime
+argument:: track
+argument:: sort
+
+
+METHOD:: addNote
+argument:: noteNumber
+argument:: velo
+argument:: startTime
+argument:: dur
+argument:: upVelo
+argument:: channel
+argument:: track
+argument:: sort
+
+METHOD:: addCC
+argument:: cc
+argument:: val
+argument:: startTime
+argument:: channel
+argument:: track
+
+
+
+
+METHOD:: addMetaEvent
+argument:: event
+argument:: sort
+
+METHOD:: addTrack
+argument:: name
+
+METHOD:: addTimeSignature
+argument:: div
+argument:: denom
+argument:: time
+argument:: sort
+argument:: removeOld
+
+METHOD:: addTimeSignatureString
+argument:: string
+argument:: time
+argument:: sort
+argument:: removeOld
+
+METHOD:: addTempo
+argument:: tempo
+argument:: time
+argument:: sort
+argument:: removeOld
+
+METHOD:: setTrackName
+argument:: name
+argument:: track
+
+METHOD:: setInstName
+argument:: name
+argument:: track
+
+METHOD:: setTempo
+argument:: newTempo
+
+subsection::removal
+
+METHOD:: removeMetaEvents
+argument:: type
+argument:: time
+argument:: track
+
+METHOD:: removeTimeSignature
+argument:: time
+argument:: doIt
+
+METHOD:: removeTempo
+argument:: time
+argument:: doIt
+
+
+
+subsection::analysis
+
+METHOD:: analyzeTypes
+
+METHOD:: analyzeMetaTypes
+
+METHOD:: analyzeChannels
+argument:: type
+
+METHOD:: analyzeChannel
+argument:: channel
+argument:: track
+
+METHOD:: analyzeUsedChannels
+argument:: track
+
+METHOD:: analyzeUsedTracks
+
+METHOD:: analyzeUsedEvents
+
+METHOD:: analyzeTracks
+argument:: type
+
+METHOD:: analyzeCC
+
+METHOD:: analyzeCCTracks
+
+METHOD:: usedChannels
+argument:: track
+
+METHOD:: usedTracks
+argument:: channel
+
+METHOD:: countMIDIEvents
+argument:: type
+argument:: track
+argument:: channel
+
+
+
+METHOD:: info
+
+
+subsection::additions
+
+METHOD:: convertTimes
+argument:: newTimeMode
+
+METHOD:: getTime
+argument:: file
+
+METHOD:: play
+argument:: clock
+argument:: protoEvent
+argument:: quant
+argument:: inst
+argument:: amp
+
+METHOD:: noteOnEvents
+argument:: channel
+argument:: track
+
+METHOD:: sysexEvents
+
+METHOD:: processChunk
+argument:: file
+
+METHOD:: rawMeasureAtBeat
+argument:: beat
+
+METHOD:: convertToInt8
+argument:: val
+argument:: size
+
+METHOD:: convertPitchBend
+argument:: to
+
+METHOD:: asDeltaChunks
+
+METHOD:: numbytes
+
+METHOD:: theTrackNumber
+
+METHOD:: asChunks
+
+METHOD:: asMIDIFileChunks
+
+METHOD:: theChan
+
+METHOD:: playNotesWithFunction
+argument:: function
+argument:: channel
+argument:: track
+argument:: clock
+argument:: doneAction
+
+METHOD:: curTime
+
+METHOD:: init
+
+METHOD:: theCmd
+
+METHOD:: keySignatures
+
+METHOD:: ccEvents
+argument:: cc
+argument:: channel
+argument:: track
+
+METHOD:: renderPattern
+argument:: pattern
+argument:: maxEvents
+argument:: timeSig
+argument:: numTicks
+
+METHOD:: convertToVLInteger
+argument:: dT
+
+METHOD:: rawMeasureAtTime
+argument:: time
+
+METHOD:: trackNames
+
+METHOD:: asMetaChunks
+
+METHOD:: asMIDIChunks
+
+METHOD:: handleMeta
+argument:: file
+
+METHOD:: playWithSynth
+argument:: defName
+argument:: maxlevel
+argument:: minlevel
+argument:: addArgs
+argument:: addAction
+argument:: channel
+argument:: track
+argument:: target
+
+METHOD:: plot
+argument:: notesOnly
+
+METHOD:: panEvents
+argument:: channel
+argument:: track
+
+METHOD:: expressionEvents
+argument:: channel
+argument:: track
+
+METHOD:: beatAtRawMeasure
+argument:: rawMeasure
+
+METHOD:: prAdjustEndOfTrack
+argument:: track
+argument:: wait
+
+METHOD:: tempo
+argument:: newTempo
+
+METHOD:: info
+
+
+METHOD:: asMetaDeltaChunks
+
+
+
+
+
+
+METHOD:: asPenFunction
+argument:: bounds
+argument:: track
+argument:: type
+argument:: channel
+argument:: cc
+argument:: minVal
+argument:: maxVal
+argument:: grid
+
+METHOD:: timeAtRawMeasure
+argument:: rawMeasure
+
+
+METHOD:: handleRunningStatus
+argument:: val
+argument:: file
+
+
+
+
+METHOD:: getVl
+argument:: file
+
+METHOD:: handleMIDI
+argument:: cmd
+argument:: file
+
+METHOD:: handleSysex
+argument:: file
+
+METHOD:: firstNote
+argument:: trackArray
+
+
+METHOD:: endOfTrack
+argument:: track
+
+
+METHOD:: asMIDIDeltaChunks
+
+
+

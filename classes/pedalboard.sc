@@ -9,6 +9,7 @@ Pedalboard{
 
 	<>view,
 	<>pedal_bounds,
+	<>controls,
 	<>crazy_aa,
 	<>window;
 
@@ -26,22 +27,19 @@ Pedalboard{
 	}
 
 	init{|server, in_bus, out_bus, window|
+		"initing pedalboard..".postln;
 		this.server = server;
 
 		this.pedal_bounds = Rect.fromPoints(0@0, 180@(270));
 		if (window.isNil, {
 			window = Window.new(
 				name: "PEDALBOY",
-				bounds:((this.pedal_bounds.width+5)*6)@(this.pedal_bounds.height+5),
+				bounds:((this.pedal_bounds.width+5)*4)@(this.pedal_bounds.height+5 + 110),
 				scroll: true
 			)
 			.background_(Color.new255(51, 51, 51))
 			.front
 			.alwaysOnTop_(true)
-			.onClose_({
-				arg w;
-				this.free_all;
-			})
 			.acceptsMouseOver_(true);
 			window.view.onResize_({
 				arg v;
@@ -49,9 +47,13 @@ Pedalboard{
 					this.remake_view();
 				// });
 			});
-
 		});
 		this.window = window;
+		this.window.onClose_({
+			arg w;
+			"freeing all synths".postln;
+			this.free_all;
+		});
 
 		this.in_bus = in_bus;
 		this.out_bus = out_bus;
@@ -61,6 +63,8 @@ Pedalboard{
 		this.window.addFlowLayout;
 		this.group = Group.new(this.server, \addToHead);
 		this.pedals = List.new();
+
+		this.window.background_(Color.rand(0.55, 0.75));
 
 		this.crazy_aa = Task({
 			inf.do({
@@ -91,6 +95,33 @@ Pedalboard{
 		pedal.init(this.server, in, out, target);
 		pedal.parent = this;
 		pedal.on;
+
+		((pedal.synthdef == \input_buffer) || (pedal.synthdef == \panner)).not.if({
+			"bypassing ".post; pedal.synthdef.postln;
+			pedal.bypass;
+		});
+	}
+
+	set_in_bus{|bus|
+		var input_pedal = this.at(0);
+		this.in_bus = bus;
+		input_pedal.out = bus;
+		input_pedal.arg_dict[\in] = bus;
+		input_pedal.is_bypassed.not.if({
+			input_pedal.synth_node.set(\in, bus);
+		});
+		"set input bus to ".post; bus.postln;
+
+	}
+	set_out_bus{|bus|
+		var output_pedal = this.at(this.pedals.size-1);
+		this.out_bus = bus;
+		output_pedal.out = bus;
+		output_pedal.arg_dict[\out] = bus;
+		output_pedal.is_bypassed.not.if({
+			output_pedal.synth_node.set(\out, bus);
+		});
+		"set output bus to ".post; bus.postln;
 	}
 
 	make_label_menu{|index|
@@ -114,8 +145,8 @@ Pedalboard{
 
 		PedalBoy.directory.keysValuesDo({
 			|key, value|
-			insert_before_menu.addAction(MenuAction(key, {this.insert(index-1, value)}));
-			insert_after_menu.addAction(MenuAction(key, {this.insert(index+1, value)}));
+			insert_before_menu.addAction(MenuAction(key, {this.insert(index, value.value)}));
+			insert_after_menu.addAction(MenuAction(key, {this.insert(index+1, value.value)}));
 		});
 
 
@@ -123,11 +154,11 @@ Pedalboard{
 			arg m_arg;
 			var menu;
 			menu = Menu(
-				MenuAction("sine", {this.insert(index-1, Modulator.sine(pedal, m_arg))}),
-				MenuAction("tri", {this.insert(index-1, Modulator.tri(pedal, m_arg))}),
-				MenuAction("pulse", {this.insert(index-1, Modulator.pulse(pedal, m_arg))}),
-				MenuAction("noise", {this.insert(index-1, Modulator.noise(pedal, m_arg))}),
-				MenuAction("brown_noise", {this.insert(index-1, Modulator.brown_noise(pedal, m_arg))})
+				MenuAction("sine",        {this.insert(index, Modulator.sine       (pedal, m_arg))}),
+				MenuAction("tri",         {this.insert(index, Modulator.tri        (pedal, m_arg))}),
+				MenuAction("pulse",       {this.insert(index, Modulator.pulse      (pedal, m_arg))}),
+				MenuAction("noise",       {this.insert(index, Modulator.noise      (pedal, m_arg))}),
+				MenuAction("brown_noise", {this.insert(index, Modulator.brown_noise(pedal, m_arg))})
 			).title_(m_arg);
 			modulate_menu.addAction(menu);
 		});
@@ -285,10 +316,10 @@ Pedalboard{
 		var p_width = this.pedal_bounds.width;
 		var p_height = this.pedal_bounds.height;
 
-		var necessary = ((num_pedals+5) * p_width * p_height) > (width*height);
+		var necessary = ((num_pedals+4) * p_width * p_height) > (width*height);
 
 		if(necessary, {
-			if((num_pedals-1).mod(6) == 0 && (this.pedals.size != 0), {
+			if((num_pedals-1).mod(4) == 0 && (this.pedals.size != 0), {
 				height = height + p_height + 5;
 			});
 			this.window.view.resizeTo(width, height);
@@ -298,11 +329,12 @@ Pedalboard{
 	}
 
 	remake_view{
-		// this.resize_if_necessary;
+		this.resize_if_necessary;
 		this.window.view.removeAll;
 
 		this.window.layout_(nil);
 		this.window.addFlowLayout();
+		this.make_control_view();
 		this.pedals.do({
 			arg pedal_ptr, count;
 			var pedal = pedal_ptr.dereference;
@@ -310,8 +342,86 @@ Pedalboard{
 			pedal.make_view(this.window, this.pedal_bounds);
 			this.make_label_menu(count);
 		});
+		this.window.view.decorator.nextLine;
+
+		// this.server.makeGui(this.window);
+
+		this.window.onClose_({
+			arg w;
+			"freeing all synths".postln;
+			this.free_all;
+		});
+
+
+		this.window.view.children.do({
+			arg v;
+			v.background_(Color.rand(0.75, 0.95))
+		});
 		this.window.refresh;
 	}
+
+	make_control_view{
+		this.controls = View(this.window, this.window.bounds.width@30);
+		this.controls.addFlowLayout();
+
+		Button(this.controls, 50@20)
+		.minSize_(Size(50, 20))
+		.maxSize_(Size(50, 20))
+		.states_([
+			["LOAD", Color.new255(51, 51, 51), Color.rand(0.75, 0.95)]
+		])
+		.action_({
+			this.load()
+		})
+		.background_(Color.rand(0.75, 0.95));
+
+		Button(this.controls(44@20))
+		.minSize_(Size(44, 20))
+		.maxSize_(Size(44, 20))
+		.states_([
+			["SAVE", Color.new255(51, 51, 51), Color.rand(0.75, 0.95)]
+		])
+		.action_({
+			this.save()
+		})
+		.background_(Color.rand(0.75, 0.95));
+
+		EZNumber(
+			parent: this.controls,
+			bounds: 130@20,
+			label: "input bus",
+			controlSpec: ControlSpec(0, 64, step: 1),
+			action: {arg v; this.set_in_bus(v.value.asInteger)},
+			initVal: 0,
+			initAction: false)
+		.setColors(
+					stringBackground: Color.rand(0.75, 0.95),
+					stringColor: Color.rand(0.05, 0.15),
+					numBackground: Color.rand(0.75, 0.95),
+					numStringColor: Color.rand(0.05, 0.15),
+					numNormalColor: Color.rand(0.05, 0.15)
+				);
+
+		EZNumber(
+			parent: this.controls,
+			bounds: 130@20,
+			label: "output bus",
+			controlSpec: ControlSpec(0, 64, step: 1),
+			action: {arg v; this.set_out_bus(v.value.asInteger)},
+			initVal: 0,
+			labelWidth: 80,
+
+			initAction: false)
+		.setColors(
+					stringBackground: Color.rand(0.75, 0.95),
+					stringColor: Color.rand(0.05, 0.15),
+					numBackground: Color.rand(0.75, 0.95),
+					numStringColor: Color.rand(0.05, 0.15),
+					numNormalColor: Color.rand(0.05, 0.15)
+				);
+	}
+
+
 
 	save_compile_str{
 		var compile_str;
@@ -339,7 +449,7 @@ Pedalboard{
 
 			if(PedalBoy.directory.at(pedal_dict[\name]).isNil.not, {
 				if(pedal_dict[\name] == \mod, {},{
-					pedal = PedalBoy.directory.at(pedal_dict[\name]);
+					pedal = PedalBoy.directory.at(pedal_dict[\name]).value;
 					this.add(pedal)
 				});
 			});
@@ -446,7 +556,8 @@ Pedalboard{
 
 			pedal = pedal_ptr.dereference;
 
-			pedal.free
+			pedal.free;
+			pedal.post; " freed".postln;
 		});
 	}
 

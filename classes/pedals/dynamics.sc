@@ -86,7 +86,7 @@
 				\depth -> MappableArg.new(
 					symbol: \depth,
 					bounds: 0@1,
-					default_value: 0.3,
+					default_value: 0.15,
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
@@ -114,7 +114,7 @@
 				\dust -> MappableArg.new(
 					symbol: \dust,
 					bounds: 0.01@1,
-					default_value: 0.3,
+					default_value: 0.03,
 					warp: \lin,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),

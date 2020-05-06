@@ -107,7 +107,10 @@ Modulator : PedalBoy {
 	// this is where the scope view is created
 	make_scope_view{
 
-		this.scope_view = View(this.view, Rect(0, 0, 185, 80));
+		var b = this.master_bounds;
+		var a = this.view.bounds.extent;
+
+		this.scope_view = View(this.view, Rect(0, 0, 185*a.x/b.x, 80*a.y/b.y));
 
 		// set size bounds for VLayout compatibility
 		this.scope_view.minSize_(Size(this.scope_view.bounds.width,

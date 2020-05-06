@@ -10,8 +10,11 @@ Platform.userExtensionDir
 
 ~pedalboard.save()
 ~pedalboard.load
-Pedalboard.load()
+p = Pedalboard.load()
 
+NodeWatcher.newFrom(s).start
+NodeWatcher.register(~pedalboard.at(0).node, true)
+~pedalboard.at(0).node.isPlaying
 
 //fix bypass at begginning and at insert/remove and remake view
 //drag and drop
@@ -19,9 +22,11 @@ Pedalboard.load()
 //patch cables
 //vocoder with filter banks
 //phase vocoder with fft?
-moveTo
 
 Buffer.freeAll
+
+
+~pedalboard.at(10).looper_buttons.children.at(0)
 
 (
 s.waitForBoot({
@@ -35,10 +40,6 @@ s.waitForBoot({
 	~input = PedalBoy.input_buffer();
 	~pedalboard.add(~input);
 
-	/*	// a cool fm synth. monophonic
-	~fm = PedalBoy.fm_synth();
-	~pedalboard.add(~fm);*/
-
 	~saw = PedalBoy.saw_synth();
 	~pedalboard.add(~saw);
 
@@ -48,6 +49,8 @@ s.waitForBoot({
 	// wah pedal. the ctrl knob is the "expression" pedal
 	~wah = PedalBoy.wah();
 	~pedalboard.add(~wah);
+
+	~pedalboard.insert(1, PedalBoy.futh());
 
 	//vanilla envelope filter
 	~env_filter = PedalBoy.bitcrusher();
@@ -71,50 +74,28 @@ s.waitForBoot({
 	~freeverb = PedalBoy.freeverb();
 	~pedalboard.add(~freeverb);
 
-	~freeze = FreezeBoy.freeze_boy();
-	~pedalboard.add(~freeze);
 
-	~looper = LooperBoy.looper();
+	~looper = GrainLooper.looper();
 	~pedalboard.add(~looper);
-	~looper.assign_loop_controls(38, 50);
+	~looper.assign_loop_controls(38, 50, 60);
 
 	~panner = PedalBoy.panner();
 	~pedalboard.add(~panner);
 
 	// assign bypass buttons to midinotes, ascending chromatically in order
-	~pedalboard.assign_bypass(60);
+	// ~pedalboard.assign_bypass(60);
 });
 )
 
-
+~pedalboard.at(10).assign_loop_controls(38, 50, 60)
+~pedalboard.at(10).server = s
 
 ~looper.scope_bus
 ~looper.play_synths.at(0).trace
-(
-~pedalboard = Pedalboard.new(
-	server: s,
-	in_bus: 0,
-	out_bus: 0);
-
-// our pedal objects
-~input = PedalBoy.input_buffer();
-~pedalboard.add(~input);
-
-
-~looper = LooperBoy.looper();
-~pedalboard.add(~looper);
-~looper.assign_loop_controls(38, 50);
-
-
-~panner = PedalBoy.panner();
-~pedalboard.add(~panner);
-)
-~looper.inspect
-
 
 ~input.assign_knob(91, \gain);
 
-~wah.assign_knob(91, \ctrl);
+~wah.assign_knob(91, \ctrl); b
 ~pshift.assign_knob(91, \interval);
 
 ~pedalboard.insert(0, Modulator.brown_noise(~input, \gain));
