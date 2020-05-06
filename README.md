@@ -2,11 +2,11 @@
 ### PedalBoy
 A SuperCollider app for real-time effects for ur guitar/voice/etc :)). It uses less latency-expensive algorithms than your typical DAW, so it is meant for live performance.
 
-![img](../lib/img/pdlbrd.jpg)
+![img](classes/lib/img/pdlbrd.png)
 
 
 ### Watch the demo
-<iframe width="560" height="315" src="https://www.youtube.com/embed/YhLWCQQjVYw" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+https://youtu.be/YhLWCQQjVYw
 
 #### Installation
 put this folder in your extensions directory:
