@@ -8,26 +8,10 @@ s.plotTreeView(0.5, Window.new.front.alwaysOnTop_(true));
 //run this line to look at the path
 Platform.userExtensionDir
 
-~pedalboard.save()
-~pedalboard.load
+// load a pedalboard preset
 p = Pedalboard.load()
 
-NodeWatcher.newFrom(s).start
-NodeWatcher.register(~pedalboard.at(0).node, true)
-~pedalboard.at(0).node.isPlaying
-
-//fix bypass at begginning and at insert/remove and remake view
-//drag and drop
-//feedback
-//patch cables
-//vocoder with filter banks
-//phase vocoder with fft?
-
-Buffer.freeAll
-
-
-~pedalboard.at(10).looper_buttons.children.at(0)
-
+///MAKING PEDALBOARDS FROM SCRATCH
 (
 s.waitForBoot({
 	//pedalboard object holds a list with pedal pointers
@@ -37,20 +21,21 @@ s.waitForBoot({
 		out_bus: 0);
 
 	// our pedal objects
+	//input buffer
 	~input = PedalBoy.input_buffer();
 	~pedalboard.add(~input);
 
+	// saw synthesizer
 	~saw = PedalBoy.saw_synth();
 	~pedalboard.add(~saw);
 
+	//ringmod
 	~fshift = PedalBoy.freq_shift();
 	~pedalboard.add(~fshift);
 
 	// wah pedal. the ctrl knob is the "expression" pedal
 	~wah = PedalBoy.wah();
 	~pedalboard.add(~wah);
-
-	~pedalboard.insert(1, PedalBoy.futh());
 
 	//vanilla envelope filter
 	~env_filter = PedalBoy.bitcrusher();
@@ -64,9 +49,6 @@ s.waitForBoot({
 	~pshift = PedalBoy.g_hex();
 	~pedalboard.add(~pshift);
 
-	/*	//vibrato
-	~vib = PedalBoy.vibrato();
-	~pedalboard.add(~vib);*/
 
 	~delay = PedalBoy.delay();
 	~pedalboard.add(~delay);
@@ -77,46 +59,17 @@ s.waitForBoot({
 
 	~looper = GrainLooper.looper();
 	~pedalboard.add(~looper);
-	~looper.assign_loop_controls(38, 50, 60);
+	//assign midi notes to looper buttons
+	~looper.assign_loop_controls(
+		rec_butt_midinote: 38,
+		undo_butt_midinote: 50,
+		clear_butt_midinote: 60);
 
 	~panner = PedalBoy.panner();
 	~pedalboard.add(~panner);
 
-	// assign bypass buttons to midinotes, ascending chromatically in order
-	// ~pedalboard.assign_bypass(60);
 });
 )
-
-~pedalboard.at(10).assign_loop_controls(38, 50, 60)
-~pedalboard.at(10).server = s
-
-~looper.scope_bus
-~looper.play_synths.at(0).trace
-
-~input.assign_knob(91, \gain);
-
-~wah.assign_knob(91, \ctrl); b
-~pshift.assign_knob(91, \interval);
-
-~pedalboard.insert(0, Modulator.brown_noise(~input, \gain));
-~pedalboard.insert(4, Modulator.brown_noise(~wah, \ctrl))
-
-~fm.assign_knob(11, \index)
-~pedalboard.patch_cable
-
-~pedalboard.insert(1, Modulator.sine(~fm, \index));
-
-~pedalboard.insert(10, Modulator.brown_noise(~panner, \pos));
-~pedalboard.insert(10, Modulator.noise(~panner, \pos));
-
-~vib.assign_knob(11, \speed);
-~env_filter.assign_knob(91, \min);
-~pshift.assign_knob(93, \wet);
-
-MIDIClient.init;
-MIDIIn.connectAll;
-MIDIFunc.trace;
-
 
 // save current pedalboard configuration
 ~pedalboard.save
@@ -150,8 +103,44 @@ MIDIFunc.trace;
 //move pedal from index a to index b
 ~pedalboard.move_to(3, 1)
 
+// if your midi isnt working, check this
+MIDIClient.init;
+MIDIIn.connectAll;
+MIDIFunc.trace;
+
 /// EXTRA: MAKING YOUR OWN PEDALS
+//this is how you use the default constructor for your pedals
+~myPedal = 	PedalBoy.from_synth_params(
+	server: s,
+	in: 0,
+	out: 0,
+	group: nil,
+	mappable_arg_dict: Dictionary.with(*[
+		//MAPPABLE ARGS ARE YOUR KNOBS
+		\gain -> MappableArg.gain(Bus.control(s, 1)),
+		//EXAMPLE: A simple volume control
+		\volume -> MappableArg.new(
+			symbol: \volume,
+			bounds: 0@1,           //our limits for the knob,
+			default_value: 0.5,    //our default value
+			warp: \lin,            //lin or exp warp,
+			gui_object: \knob,     //knob is the only one supported at the moment
+			bus: Bus.control(s, 1)) //provide it a control bus
+	]),
+	ugen_func: {
+		arg in = 0, out = 0, gain = 1, volume;
+		var sig;
 
-Latch for downsampler
+		sig = In.ar(in) * gain;
 
+		sig = sig * volume; //make sure you MappableArgs have the same name all around
+
+		ReplaceOut.ar(out, sig);
+	},
+	name: \mypedal,
+	addaction: \addAfter //always use addAfter, except for input/output buffers
+);
+
+//add your pedal to the board
+~pedalboard.insert(1, ~myPedal);
 

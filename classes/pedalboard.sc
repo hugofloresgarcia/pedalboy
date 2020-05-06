@@ -14,6 +14,7 @@ Pedalboard{
 	<>window;
 
 	*new{|server, in_bus, out_bus, window = nil|
+		Buffer.freeAll;
 		PedalBoy.make_dir;
 		server = server ? Server.default;
 		if(server.hasBooted.not, {
@@ -61,7 +62,7 @@ Pedalboard{
 		this.patch_cable = Bus.audio(this.server, 1);
 
 		this.window.addFlowLayout;
-		this.group = Group.new(this.server, \addToHead);
+		this.group  = this.group ? Group.new(this.server, \addToHead);
 		this.pedals = List.new();
 
 		this.window.background_(Color.rand(0.55, 0.75));

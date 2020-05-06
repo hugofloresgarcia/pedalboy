@@ -40,7 +40,9 @@ LooperBoy : PedalBoy {
 		});
 		this.arg_dict[\in] = this.in;
 		this.arg_dict[\out] = this.out;
-		this.loop_group = Group.new(this.group, \addAfter);
+		if (this.group.isNil.not, {
+			this.loop_group  = this.loop_group ? Group.new(this.group, \addAfter);
+		});
 		this.looperinit;
 	}
 
