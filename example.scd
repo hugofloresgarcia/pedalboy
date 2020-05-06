@@ -12,6 +12,7 @@ Platform.userExtensionDir
 p = Pedalboard.load()
 
 ///MAKING PEDALBOARDS FROM SCRATCH
+///WEAR HEADPHONES!!!!
 (
 s.waitForBoot({
 	//pedalboard object holds a list with pedal pointers
