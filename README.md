@@ -9,6 +9,8 @@ A SuperCollider app for real-time effects for ur guitar/voice/etc :)). It uses l
 https://youtu.be/YhLWCQQjVYw
 
 ## Installation
+REMEMBER TO WEAR HEADPHONES IF YOU ARE USING YOUR COMPUTER MIC
+
 put this folder in your extensions directory:
 
 macOS:
