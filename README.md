@@ -26,7 +26,11 @@ or run this line on SuperCollider to find out:
 `Platform.userExtensionDir`
 
 now, recompile your class library!!!
-Cmd-Shift-L or Ctrl-Shift-L
+Cmd+Shift+L or Ctrl+Shift+L
+
+boot the server!!
+Cmd+B or Ctrl+B
+or run `s.boot`
 
 ## Loading the default Pedalboard
 run this line in SuperCollider
