@@ -1,14 +1,14 @@
 
-### PedalBoy
+# PedalBoy
 A SuperCollider app for real-time effects for ur guitar/voice/etc :)). It uses less latency-expensive algorithms than your typical DAW, so it is meant for live performance.
 
 ![img](classes/lib/img/pdlbrd.png)
 
 
-### Watch the demo
+## Watch the demo
 https://youtu.be/YhLWCQQjVYw
 
-#### Installation
+## Installation
 put this folder in your extensions directory:
 
 macOS:
@@ -26,22 +26,22 @@ or run this line on SuperCollider to find out:
 now, recompile your class library!!!
 Cmd-L or Ctrl-L
 
-#### Loading the default Pedalboard
+## Loading the default Pedalboard
 run this line in SuperCollider
 `p = Pedalboard.load()`
 
 and open `/saved_pedalboards/default.pdlbrd`
 
-#### MIDI
+## MIDI
 Every control is MIDI assignable, so hook it up to ur favorite MIDI thingey.
 
-#### SuperCollider ppl:
+## SuperCollider ppl:
 making your own pedals is super simple! All you need to make is a UGenGraphFunc (what SynthDefs use). GUI and bus routing is taken care of for u.
 take a look at example.scd for more guidance.
 
 The Pedalboard helpfile is also pretty helpful. lol
 
-#### Donate
+## Donate
 hey, I'll take like 5 bucks for coffee :)
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](paypal.me/hugofloresgarcia)
