@@ -1,5 +1,4 @@
 PedalBoy {
-	// abstract class for all pedals
 	classvar
 	<>num_active = 0,
 	<>all;

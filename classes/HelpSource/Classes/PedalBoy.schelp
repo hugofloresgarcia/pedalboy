@@ -1,0 +1,501 @@
+TITLE:: PedalBoy
+summary:: (put short description here)
+categories:: Undocumented classes
+related:: Classes/SomeRelatedClass, Reference/SomeRelatedStuff, etc.
+
+DESCRIPTION::
+a pedal object!
+there's prebuilt pedals for you, so you don't have to make ur own.
+
+refer to the example to see how to build your own pedals
+
+CLASSMETHODS::
+
+
+METHOD:: input_buffer
+input. you NEED to put this at the beginning of your Pedalboard chain
+
+METHOD:: panner
+a panner. you NEED to put this at the end of your Pedalboard chain
+
+METHOD:: freq_shift
+a (sort of) ring modulator
+
+METHOD:: saw_synth
+a saw synthesizer
+
+METHOD:: futh
+fuzz. hah
+
+METHOD:: wah
+wah
+
+METHOD:: compressor
+Compander
+
+METHOD:: bitcrusher
+a sort of bitcrusher
+
+METHOD:: tri_synth
+triangle synth
+
+METHOD:: arpeggiator
+this isnt a thing quite yet.
+
+METHOD:: grain_pitch_shifter
+PitchShift ugen
+
+METHOD:: pitch_follower
+I forgot what this pedal does
+
+METHOD:: g_hex
+pitch shifter with adjustable ceiling
+
+METHOD:: shibrato
+vibrato that goes ALL the way
+
+METHOD:: delay
+CombC
+
+METHOD:: sine_synth
+a sine synth
+
+METHOD:: pitch_shift
+a real pitch shifter
+
+METHOD:: env_filter
+envelope filter
+
+
+METHOD:: vibrato
+guess
+
+METHOD:: from_synth_params
+constructor! use this to build your own pedals. see the example
+
+ARGUMENT:: server
+server
+
+ARGUMENT:: in
+input bus
+
+ARGUMENT:: out
+output bus
+
+ARGUMENT:: group
+node Group
+
+ARGUMENT:: mappable_arg_dict
+a MappableArg Dictionary. see example
+
+ARGUMENT:: ugen_func
+a UGen graph func
+
+ARGUMENT:: name
+a symbol w the pedals name
+
+ARGUMENT:: addaction
+addAction in signal chain. must be \addAfter (unless ur making an I/O pedal)
+
+METHOD:: freeverb
+reverb
+
+
+METHOD:: fm_synth
+an FM synth
+
+METHOD:: vinyl_boy
+compressor + vinyl + white noise + impulse noise
+
+METHOD:: soft_fuzz
+softclip
+
+
+INSTANCEMETHODS::
+
+METHOD:: ugen_func
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: make_synthdef
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: knobs
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: focused_color
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: get_bus
+(describe method here)
+
+ARGUMENT:: argument
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: synth
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: out
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: unassign_knob
+(describe method here)
+
+ARGUMENT:: argument
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: freeze_dict
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: scope_view
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: node
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: on
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: bypass
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: view
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: set_ugen_func
+(describe method here)
+
+ARGUMENT:: func
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: mappable_args
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: gui_bypass
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: gui_objs
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: control_view
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: make_view
+(describe method here)
+
+ARGUMENT:: parent
+(describe argument here)
+
+ARGUMENT:: bounds
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: view_label
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: assign_knob
+(describe method here)
+
+ARGUMENT:: ccNum
+(describe argument here)
+
+ARGUMENT:: argument
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: arg_dict
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: assign_bypass
+(describe method here)
+
+ARGUMENT:: midinote
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: make_scope_view
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: add_gui_controls
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: scope_bus
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: flow
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: synthdef
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: set_mappable_args
+(describe method here)
+
+ARGUMENT:: dictionary
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: add_buttons
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: mididef_dict
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: create_synthdef
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: free
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: init
+(describe method here)
+
+ARGUMENT:: server
+(describe argument here)
+
+ARGUMENT:: in
+(describe argument here)
+
+ARGUMENT:: out
+(describe argument here)
+
+ARGUMENT:: group
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: bypass_button
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: scope_node
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: label_view
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: connect
+(describe method here)
+
+ARGUMENT:: other
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: master_bounds
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: in
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: instance_id
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: button_view
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: freeze_knobs
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: addaction
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: set_bus
+(describe method here)
+
+ARGUMENT:: argument
+(describe argument here)
+
+ARGUMENT:: value
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: synth_node
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: server
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: is_bypassed
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: scope_arg
+(describe method here)
+
+ARGUMENT:: argument
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: set_all_knobs
+(describe method here)
+
+ARGUMENT:: knob_value_list
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: scope
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: group
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: normal_color
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: parent
+(describe method here)
+
+returns:: (describe returnvalue here)
+
+METHOD:: synth_param_init
+(describe method here)
+
+ARGUMENT:: mappable_arg_dict
+(describe argument here)
+
+ARGUMENT:: ugen_func
+(describe argument here)
+
+ARGUMENT:: name
+(describe argument here)
+
+ARGUMENT:: addaction
+(describe argument here)
+
+returns:: (describe returnvalue here)
+
+
+EXAMPLES::
+
+code::
+/// EXTRA: MAKING YOUR OWN PEDALS
+//this is how you use the default constructor for your pedals
+~myPedal = 	PedalBoy.from_synth_params(
+	server: s,
+	in: 0,
+	out: 0,
+	group: nil,
+	mappable_arg_dict: Dictionary.with(*[
+		//MAPPABLE ARGS ARE YOUR KNOBS
+		\gain -> MappableArg.gain(Bus.control(s, 1)),
+		//EXAMPLE: A simple volume control
+		\volume -> MappableArg.new(
+			symbol: \volume,
+			bounds: 0@1,           //our limits for the knob,
+			default_value: 0.5,    //our default value
+			warp: \lin,            //lin or exp warp,
+			gui_object: \knob,     //knob is the only one supported at the moment
+			bus: Bus.control(s, 1)) //provide it a control bus
+	]),
+	ugen_func: {
+		arg in = 0, out = 0, gain = 1, volume;
+		var sig;
+
+		sig = In.ar(in) * gain;
+
+		sig = sig * volume; //make sure you MappableArgs have the same name all around
+
+		ReplaceOut.ar(out, sig);
+	},
+	name: \mypedal,
+	addaction: \addAfter //always use addAfter, except for input/output buffers
+);
+
+//add your pedal to the board
+~pedalboard.insert(1, ~myPedal);
+::
