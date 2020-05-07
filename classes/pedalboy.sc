@@ -469,7 +469,7 @@ PedalBoy {
 	*directory{
 		this.all.keysValuesDo({
 			arg key, value;
-			// key.postln;
+			key.postln;
 		});
 		^this.all
 	}
