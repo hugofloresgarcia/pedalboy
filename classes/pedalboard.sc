@@ -562,6 +562,19 @@ Pedalboard{
 		});
 	}
 
+	set_pedal_bounds{|bounds|
+		if(bounds.isKindOf(Rect).not,{
+			Error("pedal bounds needs an instance of Rect").throw;
+		});
+		this.pedal_bounds = bounds;
+		this.remake_view;
+	}
+
+	bigger_pedals{
+		this.pedal_bounds = Rect(0, 0, 230, 350);
+		this.remake_view;
+	}
+
 
 }
 

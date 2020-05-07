@@ -6,7 +6,9 @@ DESCRIPTION::
 Pedalboard is made to resemble a real life pedalboard.
 the Pedalboard object is used to hold and connect PedalBoy objects together.
 note that to make sound, the first pedal has to be a PedalBoy.input_buffer,
-and the last pedal has to be a Pedalboy.output_buffer or PedalBoy.panner
+and the last pedal has to be a Pedalboy.output_buffer or PedalBoy.panner.
+NOTE --> if the pedals look too small on your display, use the .bigger_pedals method to
+increase the PedalBoy view bounds. see example for reference
 
 
 CLASSMETHODS::
@@ -59,7 +61,11 @@ the starting midinote for the bypass toggles
 METHOD:: clear
 clear the pedalboard
 
-returns:: (describe returnvalue here)
+METHOD:: bigger_pedals
+resize pedal bounds to a bigger size
+
+METHOD:: set_pedal_bounds
+set pedal bounds. needs a Rect
 
 METHOD:: go_crazy_aaaa_go_stupid
 ???????????????????????????
@@ -125,6 +131,11 @@ Platform.userExtensionDir
 // load a pedalboard preset
 p = Pedalboard.load()
 
+//bigger pedals
+p.bigger_pedals();
+
+//manually set pedal bounds
+p.set_pedal_bounds(Rect(0, 0, 230, 350));
 
 ///MAKING PEDALBOARDS FROM SCRATCH
 (

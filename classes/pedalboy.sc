@@ -489,6 +489,11 @@ PedalBoy {
 		^knob_values;
 	}
 
+	*initClass{
+		super.initClass;
+		this.make_dir;
+	}
+
 
 	freeze_dict{
 		var dict, path;
