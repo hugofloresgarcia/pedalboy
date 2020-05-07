@@ -10,7 +10,7 @@
 				\rq -> MappableArg.new(
 					symbol: \rq,
 					bounds: 0.1@1,
-					default_value: 0.3,
+					default_value: 0.8,
 					warp: \exp,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
@@ -82,7 +82,7 @@
 				\rq -> MappableArg.new(
 					symbol: \rq,
 					bounds: 0.1@1,
-					default_value: 0.3,
+					default_value: 0.8,
 					warp: \exp,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
@@ -144,7 +144,7 @@
 				\rq -> MappableArg.new(
 					symbol: \rq,
 					bounds: 0.1@1,
-					default_value: 0.3,
+					default_value: 0.8,
 					warp: \exp,
 					gui_object: \knob,
 					bus: Bus.control(server, 1)),
