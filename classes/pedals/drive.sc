@@ -9,7 +9,7 @@
 				\gain -> MappableArg.gain(Bus.control(server, 1)).default_value_(1),
 				\rq -> MappableArg.new(
 					symbol: \rq,
-					bounds: 0.01@1,
+					bounds: 0.1@1,
 					default_value: 0.3,
 					warp: \exp,
 					gui_object: \knob,
