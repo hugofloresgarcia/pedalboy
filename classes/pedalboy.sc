@@ -255,7 +255,7 @@ PedalBoy {
 		this.add_gui_controls;
 		this.add_buttons;
 
-		// "making view for ".post; this.synthdef.postln;
+		"INTERNAL: making view for ".post; this.synthdef.postln;
 
 		this.view.layout_(
 			VLayout(
@@ -265,6 +265,9 @@ PedalBoy {
 				this.bypass_button
 			)
 		);
+
+		"DONE making view for ".post; this.synthdef.postln;
+
 	}
 
 	view_label{
@@ -463,10 +466,12 @@ PedalBoy {
 			\g_hex -> { PedalBoy.g_hex()},
 			\futh -> { PedalBoy.futh()},
 			\soft_fuzz -> { PedalBoy.soft_fuzz()},
+			// \wack -> {PedalBoy.wack()},
 		]);
 	}
 
 	*directory{
+		"-----> printing directory....".postln;
 		this.all.keysValuesDo({
 			arg key, value;
 			key.postln;

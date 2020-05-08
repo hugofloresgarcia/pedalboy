@@ -181,8 +181,8 @@ Pedalboard{
 			}),
 			MenuAction("remove", {this.remove(index)}),
 		);
-/*
-		//drag to move pedals
+
+/*		//drag to move pedals
 		pedal.view.beginDragAction_({
 			arg v, x, y;
 			// v.moveTo(x, y);
@@ -191,19 +191,31 @@ Pedalboard{
 		pedal.view.dragLabel_(pedal.synthdef);
 		pedal.view.canReceiveDragHandler_({
 			arg v, x, y;
-			v.background_(pedal.focused_color);
+			// v.background_(pedal.focused_color);
+			var moveFromIndex = View.currentDragString.interpret;
+			moveFromIndex.postln;
+			// index.postln;
+			("could move" + moveFromIndex.asString + "to" + index.asString).postln;
+			// this.move_to(moveFromIndex, index);
+			// "here?".postln;
 		});
 		pedal.view.receiveDragHandler_({
 			arg v, x, y;
 			var moveFromIndex = View.currentDragString.interpret;
-			defaultGetDrag
-
+			var new = this.at(moveFromIndex).copy;
 			moveFromIndex.postln;
-			index.postln;
-			"moving".postln;
-			this.move_to(moveFromIndex, index);
-			DragBoth
-			"here?".postln;
+
+			// defaultGetDrag
+			("received" + moveFromIndex.asString + "from" + index.postln).postln;
+			// moveFromIndex.postln;
+			// this.move_to(moveFromIndex, index);
+
+
+			this.remove(moveFromIndex);
+			"removed successfully".postln;
+/*			this.insert(index, new);*/
+
+			"moved".postln;
 		});
 /*		pedal.view.mouseMoveAction_({
 			arg v, x, y;
@@ -247,8 +259,30 @@ Pedalboard{
 			this.pedals.add(Ref(pedal));
 			this.remake_view();
 		});
-
 	}
+
+	add_many{|pedal_array|
+		var target;
+		pedal_array.do({
+			arg pedal;
+			if (pedal.isMemberOf(Modulator), {
+				"couldn't add a modulator, please insert before your target".warn;
+			}, {
+				if(this.pedals.size == 0, {
+					target = this.group;
+				}, {
+					target = this.at(this.pedals.size-1).node;
+				});
+				this.init_pedal(pedal, target);
+				this.pedals.add(Ref(pedal));
+
+			});
+		});
+
+
+		this.remake_view();
+	}
+
 
 
 	insert{|index, pedal|
@@ -340,6 +374,7 @@ Pedalboard{
 			arg pedal_ptr, count;
 			var pedal = pedal_ptr.dereference;
 
+			("making view for" + pedal.synthdef.asString).postln;
 			pedal.make_view(this.window, this.pedal_bounds);
 			this.make_label_menu(count);
 		});
@@ -548,6 +583,20 @@ Pedalboard{
 
 
 
+	*default{|server, in_bus, out_bus, window|
+		var instance;
+
+
+		instance = Pedalboard(
+			server: server,
+			in_bus: in_bus,
+			out_bus: out_bus,
+			window: window);
+
+		instance.restore_from_compile_str("List[ Dictionary[ ('is_bypassed' -> 0), ('knob_values' -> List[ 1.0 ]), ('name' -> 'input_buffer') ], Dictionary[ ('is_bypassed' -> 1), ('knob_values' -> List[ 0.25, 0.50000000323575, 1.0, 0.68500000238419 ]), ('name' -> 'futh') ], Dictionary[ ('is_bypassed' -> 1), ('knob_values' -> List[ 0.1, 0.019803961090241, 0.49494949494949, 0.64193915659645, 0.019803961090241, 0.1, 0.79797981002114, 0.75 ]), ('name' -> 'fm_synth') ], Dictionary[ ('is_bypassed' -> 1), ('knob_values' -> List[ 1.0, 1.0, 1.0, 0.15293268026036, 0.0, 0.73856063598849 ]), ('name' -> 'env_filter') ], Dictionary[ ('is_bypassed' -> 1), ('knob_values' -> List[ 0.090909092414259, 0.5, 0.49748743718593, 0.0049004900490049, 0.15000000596046, 0.020202019524695, 1.0, 0.43458798967609, 0.30000001192093 ]), ('name' -> 'vinyl_boy') ], Dictionary[ ('is_bypassed' -> 1), ('knob_values' -> List[ 0.69696968492835, 0.125, 0.75, 1.0 ]), ('name' -> 'delay') ], Dictionary[ ('is_bypassed' -> 1), ('knob_values' -> List[ 1.0, 1.0, 0.92289966344833, 0.30000001192093 ]), ('name' -> 'freeverb') ], Dictionary[ ('is_bypassed' -> 1), ('knob_values' -> List[ 1.0, 1.0, 0.95275592803955, 1.0, 0.73856063598849, 0.0, 0.15293268026036 ]), ('name' -> 'wah') ], Dictionary[ ('is_bypassed' -> 0), ('knob_values' -> List[ 0.12732863504549, 0.5 ]), ('name' -> 'panner') ] ]");
+
+		^instance;
+	}
 
 
 	free_all{
