@@ -11,7 +11,9 @@ Pedalboard{
 	<>pedal_bounds,
 	<>controls,
 	<>crazy_aa,
-	<>window;
+	<>window,
+
+	<>net_addr;
 
 	*new{|server, in_bus, out_bus, window = nil|
 		Buffer.freeAll;
@@ -76,6 +78,18 @@ Pedalboard{
 
 		if(this.window.isNil.not, {
 		});
+
+/*		this.net_addr = NetAddr("127.0.0.1", 57121);
+
+
+		OSCdef(\drag_receiver, {
+			arg msg;
+			var index_from, index_to;
+			msg.postln;
+			index_from = msg[1];
+			index_to = msg[2];
+			{this.move_to(index_from, index_to);}.defer;
+		}, '/move_to', this.net_addr);*/
 	}
 
 	init_pedal{|pedal, target|
@@ -198,11 +212,11 @@ Pedalboard{
 		);
 
 /*		//drag to move pedals
-		DragBoth(
+/*		DragBoth(
 			parent: pedal.label_view,
 			bounds: pedal.label_view.bounds
-		)
-		.beginDragAction_({
+		)*/
+		pedal.view.beginDragAction_({
 			arg v, x, y;
 			// v.moveTo(x, y);
 			index;
@@ -228,10 +242,11 @@ Pedalboard{
 			("received" + moveFromIndex.asString + "from" + index.postln).postln;
 			// moveFromIndex.postln;
 			// this.move_to(moveFromIndex, index);
-
-
+			this.net_addr.sendMsg('/move_to', moveFromIndex, index);
+			"sent msg".postln;
+			/*
 			this.remove(moveFromIndex);
-			"removed successfully".postln;
+			"removed successfully".postln;*/
 /*			this.insert(index, new);*/
 
 			"moved".postln;
@@ -357,7 +372,8 @@ Pedalboard{
 		// pedal.group = target;
 		"pedal freed".postln;
 		//disconnect the pedal
-		this.disconnect(index_from);
+		pedal.bypass;
+		this.pedals.removeAt(index_from);
 		"disconnect".postln;
 		//insert back into  our signal
 		this.insert(index_to, pedal);
