@@ -267,7 +267,6 @@ PedalBoy {
 		);
 
 		"DONE making view for ".post; this.synthdef.postln;
-
 	}
 
 	view_label{
@@ -430,8 +429,11 @@ PedalBoy {
 				this.server.sync;
 				"checking node ".post; this.synthdef; " for bypass".postln;
 				"is bypassed: ".post; this.is_bypassed.postln;
-				this.bypass_button.valueAction_(this.is_bypassed.asInteger);
-			}).play(AppClock);
+				{
+					this.bypass_button.valueAction_(this.is_bypassed.asInteger);
+					"routine finished".postln;
+				}.defer;
+			}).play;
 		});
 
 		// this.view.layout.add(bypass_button);
@@ -457,7 +459,7 @@ PedalBoy {
 			\vibrato -> { PedalBoy.vibrato()},
 			\shibrato -> { PedalBoy.shibrato()},
 			\vinyl_boy -> { PedalBoy.vinyl_boy()},
-			\looper_boy -> { LooperBoy.looper()},
+			// \looper_boy -> { LooperBoy.looper()},
 			\grain_looper -> { GrainLooper.looper()},
 			// \chorus -> { PedalBoy.chorus()},
 			\env_filter -> { PedalBoy.env_filter()},

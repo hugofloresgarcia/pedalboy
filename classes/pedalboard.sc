@@ -35,7 +35,7 @@ Pedalboard{
 		if (window.isNil, {
 			window = Window.new(
 				name: "PEDALBOY",
-				bounds:((this.pedal_bounds.width+5)*4)@(this.pedal_bounds.height+5 + 110),
+				bounds:((this.pedal_bounds.width+5)*4)@(this.pedal_bounds.height+5 ),
 				scroll: true
 			)
 			.background_(Color.new255(51, 51, 51))
@@ -93,7 +93,9 @@ Pedalboard{
 			out = this.patch_cable;
 		});
 
+		("PEDALBOARD: initing pedal " ++ pedal.synthdef.asString).postln;
 		pedal.init(this.server, in, out, target);
+		("PEDALBOARD: initing" + pedal.synthdef.asString + "done").postln;
 		pedal.parent = this;
 		pedal.on;
 
@@ -132,6 +134,7 @@ Pedalboard{
 		var insert_before_menu;
 		var insert_after_menu;
 		var modulate_menu;
+		var move_to_menu;
 		//change color when we're over them
 		label_view.children[0].mouseOverAction_({
 			arg v;
@@ -143,12 +146,23 @@ Pedalboard{
 		insert_before_menu = Menu().title_("insert before...");
 		insert_after_menu = Menu().title_("insert after...");
 		modulate_menu = Menu().title_("modulate...");
+		move_to_menu = Menu().title_("move before...");
 
 		PedalBoy.directory.keysValuesDo({
 			|key, value|
 			insert_before_menu.addAction(MenuAction(key, {this.insert(index, value.value)}));
 			insert_after_menu.addAction(MenuAction(key, {this.insert(index+1, value.value)}));
 		});
+
+		this.pedals.do({
+			arg pedal_ptr, count;
+			var pedal = pedal_ptr.dereference;
+			move_to_menu.addAction(MenuAction(pedal.synthdef, {
+				("moving" + index.asString + "to" + count.asString).postln;
+				this.move_to(index, count);
+			}));
+		});
+
 
 
 		pedal.mappable_args.keys.do({
@@ -165,6 +179,7 @@ Pedalboard{
 		});
 
 		label_view.setContextMenuActions(
+			// move_to_menu,
 			insert_before_menu,
 			insert_after_menu,
 			modulate_menu,
@@ -183,13 +198,17 @@ Pedalboard{
 		);
 
 /*		//drag to move pedals
-		pedal.view.beginDragAction_({
+		DragBoth(
+			parent: pedal.label_view,
+			bounds: pedal.label_view.bounds
+		)
+		.beginDragAction_({
 			arg v, x, y;
 			// v.moveTo(x, y);
 			index;
-		});
-		pedal.view.dragLabel_(pedal.synthdef);
-		pedal.view.canReceiveDragHandler_({
+		})
+		// .dragLabel_(pedal.synthdef)
+		.canReceiveDragHandler_({
 			arg v, x, y;
 			// v.background_(pedal.focused_color);
 			var moveFromIndex = View.currentDragString.interpret;
@@ -198,8 +217,8 @@ Pedalboard{
 			("could move" + moveFromIndex.asString + "to" + index.asString).postln;
 			// this.move_to(moveFromIndex, index);
 			// "here?".postln;
-		});
-		pedal.view.receiveDragHandler_({
+		})
+		.receiveDragHandler_({
 			arg v, x, y;
 			var moveFromIndex = View.currentDragString.interpret;
 			var new = this.at(moveFromIndex).copy;
@@ -216,7 +235,8 @@ Pedalboard{
 /*			this.insert(index, new);*/
 
 			"moved".postln;
-		});
+		});*/
+
 /*		pedal.view.mouseMoveAction_({
 			arg v, x, y;
 			v.beginDrag(x, y);
@@ -228,7 +248,7 @@ Pedalboard{
 		pedal.view.mouseUpAction_({
 			arg v, x, y;
 			// v.background_(pedal.normal_color);
-		});*/
+		});
 	}
 
 	assign_bypass{|start_note|
@@ -298,6 +318,14 @@ Pedalboard{
 			target = this.at(index-1).node;
 			this.init_pedal(pedal, target);
 		});
+		if (pedal.isMemberOf(GrainLooper), {
+			// since the pedals add to to the tail of a target,
+			// we get the pedal that goes before our new pedal,
+			// and add our new pedal to the tail of it
+			target = this.at(index-1).node;
+			this.init_pedal(pedal, target);
+		});
+
 
 		this.pedals.insert(index, `pedal);
 		this.remake_view();
@@ -376,6 +404,7 @@ Pedalboard{
 
 			("making view for" + pedal.synthdef.asString).postln;
 			pedal.make_view(this.window, this.pedal_bounds);
+			("making menu for" + pedal.synthdef.asString).postln;
 			this.make_label_menu(count);
 		});
 		this.window.view.decorator.nextLine;
