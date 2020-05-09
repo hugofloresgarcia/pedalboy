@@ -14,7 +14,7 @@ https://youtu.be/YhLWCQQjVYw
 https://supercollider.github.io/download <br>
 download it from here <br>
 --> know that to "run" SuperCollider code you have to select the text
-and then press Shift + Enter to run it. 
+and then press Shift + Enter to run it.
 
 REMEMBER TO WEAR HEADPHONES IF YOU ARE USING YOUR COMPUTER MIC
 
@@ -40,7 +40,11 @@ Cmd+B or Ctrl+B
 or run `s.boot`
 
 ## Loading the default Pedalboard
-run this line in SuperCollider
+create an instance of the default pedalboard:
+`p = Pedalboard.default()`
+
+
+alternatively, run this line in SuperCollider
 `p = Pedalboard.load()`
 
 and open `/saved_pedalboards/default.pdlbrd`
