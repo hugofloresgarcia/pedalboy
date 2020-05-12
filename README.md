@@ -41,7 +41,7 @@ or run `s.boot`
 
 ## Loading the default Pedalboard
 create an instance of the default pedalboard:
-`p = Pedalboard.default()`
+`p = Pedalboard.default()
 
 
 alternatively, run this line in SuperCollider
