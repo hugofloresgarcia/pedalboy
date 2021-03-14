@@ -58,7 +58,3 @@ take a look at example.scd for more guidance.
 
 The Pedalboard helpfile is also pretty helpful. lol
 
-## Donate
-hey, I'll take like 5 bucks for coffee :)
-
-[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.me/hugofloresgarcia)
