@@ -1,7 +1,6 @@
 
 # PedalBoy
-A SuperCollider app for real-time effects for ur guitar/voice/etc :)). It uses less latency-expensive algorithms than your typical DAW, so it is meant for live performance.
-
+A SuperCollider app for real-time effects for ur guitar/voice/etc :)). suuuuper modular
 ![img](classes/lib/img/pdlbrd.png)
 
 
